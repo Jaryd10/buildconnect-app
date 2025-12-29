@@ -1,0 +1,12 @@
+.app-layout {
+  display: flex;
+  height: 100vh;
+  background: linear-gradient(135deg, #020617, #020617);
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow: hidden;
+}
+

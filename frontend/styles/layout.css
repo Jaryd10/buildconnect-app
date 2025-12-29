@@ -1,0 +1,33 @@
+.layout {
+  display: flex;
+  height: 100vh;
+  background: linear-gradient(135deg, #020617, #020617);
+  color: white;
+}
+
+.sidebar {
+  width: 260px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar a {
+  display: block;
+  padding: 12px;
+  border-radius: 8px;
+  color: #a855f7;
+  text-decoration: none;
+  margin-bottom: 10px;
+}
+
+.sidebar a.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow: hidden;
+}
+
