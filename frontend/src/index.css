@@ -1,0 +1,67 @@
+/* Theme variables */
+body[data-theme="dark"] {
+  --bg: #0b1320;
+  --sidebar: #0e1625;
+  --text: #ffffff;
+  --link: #8ab4ff;
+}
+
+body[data-theme="light"] {
+  --bg: #ffffff;
+  --sidebar: #f3f4f6;
+  --text: #111111;
+  --link: #2563eb;
+}
+
+/* Global */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background: var(--sidebar);
+  color: var(--text);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+}
+
+.sidebar nav a {
+  display: block;
+  color: var(--link);
+  margin: 10px 0;
+  text-decoration: none;
+}
+
+.sidebar nav a.active {
+  font-weight: bold;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.logo img {
+  width: 36px;
+  height: 36px;
+}
+
+.theme-toggle {
+  margin-top: auto;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+

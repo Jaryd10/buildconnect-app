@@ -1,0 +1,66 @@
+.marketplace-container {
+  padding: 20px;
+}
+
+.marketplace-search {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.marketplace-search input {
+  padding: 10px;
+  flex: 1;
+}
+
+.marketplace-form {
+  background: rgba(255,255,255,0.05);
+  padding: 15px;
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  max-width: 600px;
+}
+
+.marketplace-form input,
+.marketplace-form textarea,
+.marketplace-form select {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+.marketplace-form button {
+  background: #2563eb;
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.marketplace-grid {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.marketplace-card {
+  background: rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 15px;
+}
+
+.marketplace-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.preview {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 10px;
+}
