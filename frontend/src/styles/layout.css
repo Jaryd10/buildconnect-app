@@ -95,3 +95,47 @@ body.light .theme-toggle {
   border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
+/* =========================
+   App Navigation
+   ========================= */
+
+.app-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.nav-btn {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.nav-btn.active {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+
+/* Light mode overrides */
+
+body.light .nav-btn {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+body.light .nav-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+body.light .nav-btn.active {
+  background: rgba(37, 99, 235, 0.15);
+  color: #2563eb;
+}
+
