@@ -1,0 +1,95 @@
+.dm-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+}
+
+.dm-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dm-row {
+  display: flex;
+  align-items: flex-end;
+}
+
+.dm-row.me {
+  justify-content: flex-end;
+}
+
+.dm-row.them {
+  justify-content: flex-start;
+}
+
+.dm-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2b6cff;
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.dm-bubble {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+}
+
+.dm-bubble.me {
+  background: #2b6cff;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.dm-bubble.them {
+  background: rgba(255, 255, 255, 0.08);
+  color: #eaeaea;
+  border-bottom-left-radius: 4px;
+}
+
+.dm-time {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.dm-input {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dm-input input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 20px;
+  border: none;
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.dm-input button {
+  padding: 0 18px;
+  border-radius: 20px;
+  border: none;
+  background: #2b6cff;
+  color: white;
+  cursor: pointer;
+}
