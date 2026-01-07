@@ -4,28 +4,24 @@ const path = require("path");
 
 const router = express.Router();
 
-// Storage config
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + file.originalname;
-    cb(null, uniqueName);
+    cb(null, Date.now() + "-" + file.originalname);
   },
 });
 
 const upload = multer({ storage });
 
-// POST /api/upload
 router.post("/", upload.single("file"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
 
   res.json({
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    mimetype: req.file.mimetype,
-    url: `/uploads/${req.file.filename}`,
+    user: req.body.user || "Unknown",
+    file: `http://localhost:4000/uploads/${req.file.filename}`,
+    time: new Date().toISOString(),
   });
 });
 

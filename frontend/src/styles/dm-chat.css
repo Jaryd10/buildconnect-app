@@ -1,0 +1,88 @@
+.dm-container {
+  display: flex;
+  height: 100%;
+}
+
+.dm-users {
+  width: 220px;
+  padding: 12px;
+  border-right: 1px solid #222;
+}
+
+.dm-users button {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #1e293b;
+  color: white;
+  cursor: pointer;
+}
+
+.dm-users button.active {
+  background: #2563eb;
+}
+
+.dm-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.dm-header {
+  padding: 12px;
+  border-bottom: 1px solid #222;
+  font-weight: bold;
+}
+
+.dm-messages {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.dm-bubble {
+  max-width: 60%;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.dm-bubble.me {
+  background: #2563eb;
+  color: white;
+  margin-left: auto;
+}
+
+.dm-bubble.them {
+  background: #1e293b;
+  color: white;
+}
+
+.dm-time {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+.dm-input {
+  display: flex;
+  padding: 10px;
+  gap: 8px;
+}
+
+.dm-input input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+.dm-input button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: white;
+}

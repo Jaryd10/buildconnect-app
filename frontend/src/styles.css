@@ -1,246 +1,88 @@
-/* =======================
-   THEME VARIABLES
-======================= */
-:root {
-  --bg: #020617;
-  --panel: #020617;
-  --panel-soft: #020617;
-  --border: #1e293b;
-  --text: #e5e7eb;
-  --muted: #94a3b8;
-  --accent: #2563eb;
-  --accent-soft: #1d4ed8;
-}
-
-[data-theme="light"] {
-  --bg: #f8fafc;
-  --panel: #ffffff;
-  --panel-soft: #f1f5f9;
-  --border: #cbd5f5;
-  --text: #020617;
-  --muted: #475569;
-  --accent: #2563eb;
-  --accent-soft: #1d4ed8;
-}
-
-/* =======================
-   GLOBAL
-======================= */
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: linear-gradient(180deg, var(--bg), #020617);
-  color: var(--text);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  background: #0b1020;
+  font-family: system-ui, sans-serif;
 }
 
-/* =======================
-   LAYOUT
-======================= */
-.layout {
-  display: flex;
+.chat-app {
   height: 100vh;
-}
-
-.sidebar {
-  width: 260px;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
-.sidebar h2 {
-  margin: 0 0 10px;
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.sidebar button {
-  background: transparent;
-  border: none;
-  color: var(--text);
+.chat-header {
   padding: 12px;
-  border-radius: 10px;
-  text-align: left;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.2s ease;
-}
-
-.sidebar button:hover {
-  background: var(--panel-soft);
-}
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-/* =======================
-   HEADER
-======================= */
-.header {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
+  background: #111831;
+  color: white;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(180deg, #020617, transparent);
 }
 
-.header span {
-  font-weight: 600;
-}
-
-.header select {
-  background: var(--panel-soft);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 6px 10px;
-  border-radius: 8px;
-}
-
-/* =======================
-   CHAT
-======================= */
-.chat {
+.chat-body {
   flex: 1;
-  padding: 20px;
+  padding: 12px;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
 }
 
 .bubble {
-  max-width: 65%;
-  padding: 14px;
-  border-radius: 18px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  max-width: 70%;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 14px;
+  font-size: 14px;
 }
 
 .bubble.me {
+  background: #2563eb;
   margin-left: auto;
-  background: linear-gradient(135deg, var(--accent), var(--accent-soft));
   color: white;
 }
 
 .bubble.them {
-  background: var(--panel-soft);
-  border: 1px solid var(--border);
-}
-
-.bubble .user {
-  font-size: 12px;
-  opacity: 0.8;
-  cursor: pointer;
-}
-
-.bubble p {
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* =======================
-   MEDIA
-======================= */
-.media-img {
-  max-width: 100%;
-  border-radius: 12px;
-  margin-top: 6px;
-}
-
-.media-video {
-  max-width: 100%;
-  border-radius: 12px;
-  margin-top: 6px;
-}
-
-/* =======================
-   INPUT BAR
-======================= */
-.input-bar {
-  padding: 14px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 10px;
-  background: linear-gradient(0deg, #020617, transparent);
-}
-
-.input-bar input {
-  flex: 1;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--panel-soft);
-  color: var(--text);
-}
-
-.input-bar button {
-  background: var(--accent);
-  border: none;
+  background: #1f2937;
   color: white;
-  padding: 0 18px;
-  border-radius: 12px;
-  cursor: pointer;
 }
 
-/* =======================
-   MARKETPLACE
-======================= */
-.market-search {
-  margin: 16px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--panel-soft);
-  color: var(--text);
+.user {
+  font-size: 11px;
+  opacity: 0.7;
 }
 
-.market-list {
-  padding: 16px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+.time {
+  font-size: 10px;
+  opacity: 0.5;
+  margin-top: 4px;
 }
 
-.market-card {
-  background: var(--panel-soft);
-  border: 1px solid var(--border);
-  padding: 16px;
-  border-radius: 16px;
+.chat-input {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.market-card button {
-  margin-top: 8px;
-  background: var(--accent);
-  border: none;
-  color: white;
+  gap: 6px;
   padding: 10px;
-  border-radius: 10px;
+  background: #111831;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+}
+
+.chat-input button {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
   cursor: pointer;
 }
 
-/* =======================
-   EMOJI
-======================= */
-.emoji-panel {
+.emoji-bar {
   position: absolute;
-  bottom: 90px;
-  left: 300px;
-  z-index: 10;
+  bottom: 60px;
+  background: #1f2937;
+  padding: 6px;
+  border-radius: 10px;
 }

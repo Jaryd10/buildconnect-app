@@ -1,32 +1,48 @@
 const express = require("express");
+const multer = require("multer");
+const db = require("../db");
+
 const router = express.Router();
 
-let messages = [];
+/* ---------- UPLOAD CONFIG ---------- */
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (_, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
 
-// GET all messages
+const upload = multer({ storage });
+
+/* ---------- GET MESSAGES ---------- */
 router.get("/", (req, res) => {
+  const messages = db
+    .prepare("SELECT * FROM messages ORDER BY id ASC")
+    .all();
   res.json(messages);
 });
 
-// POST new message
-router.post("/", (req, res) => {
-  const { user, text, file, fileType } = req.body;
+/* ---------- POST MESSAGE ---------- */
+router.post("/", upload.single("file"), (req, res) => {
+  const { user, text } = req.body;
+  const file = req.file ? req.file.filename : null;
 
-  // allow text OR file (or both)
   if (!user || (!text && !file)) {
     return res.status(400).json({ error: "Invalid message" });
   }
 
-  const message = {
-    user,
-    text: text || "",
-    file: file || null,
-    fileType: fileType || null,
-    createdAt: Date.now(),
-  };
+  const result = db
+    .prepare(
+      `INSERT INTO messages (user, text, file)
+       VALUES (?, ?, ?)`
+    )
+    .run(user, text || null, file);
 
-  messages.push(message);
-  res.json(message);
+  const saved = db
+    .prepare("SELECT * FROM messages WHERE id = ?")
+    .get(result.lastInsertRowid);
+
+  res.json(saved);
 });
 
 module.exports = router;
