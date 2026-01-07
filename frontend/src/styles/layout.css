@@ -10,3 +10,88 @@
   overflow: hidden;
 }
 
+/* =========================
+   App Header
+   ========================= */
+
+.app-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  background: linear-gradient(90deg, #020617, #0f172a);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-logo {
+  height: 36px;
+  width: auto;
+}
+
+.app-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.5px;
+}
+
+/* =========================
+   App Main Layout
+   ========================= */
+
+.app-main {
+  height: calc(100vh - 64px); /* header height */
+  overflow: hidden;
+}
+
+/* =========================
+   Theme System
+   ========================= */
+
+body.dark {
+  background-color: #020617;
+  color: #f8fafc;
+}
+
+body.light {
+  background-color: #f8fafc;
+  color: #020617;
+}
+
+/* Header overrides */
+
+body.light .app-header {
+  background: linear-gradient(90deg, #e5e7eb, #f9fafb);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light .app-title {
+  color: #020617;
+}
+
+body.light .theme-toggle {
+  color: #020617;
+}
+
+/* Theme toggle button */
+
+.theme-toggle {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+body.light .theme-toggle {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
