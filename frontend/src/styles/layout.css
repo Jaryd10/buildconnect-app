@@ -18,10 +18,14 @@
   height: 64px;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  background: linear-gradient(90deg, #020617, #0f172a);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  justify-content: space-between;
+  padding: 0 24px;
+  background: linear-gradient(180deg, #020617, #020617 60%, #030712);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  z-index: 50;
 }
+
 
 .app-header-left {
   display: flex;
@@ -107,12 +111,16 @@ body.light .theme-toggle {
 .nav-btn {
   background: transparent;
   border: none;
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 7px 14px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: rgba(255, 255, 255, 0.65);
+  transition: background 0.15s ease, color 0.15s ease;
 }
+
 
 .nav-btn:hover {
   background: rgba(255, 255, 255, 0.08);
@@ -120,9 +128,10 @@ body.light .theme-toggle {
 }
 
 .nav-btn.active {
-  background: rgba(56, 189, 248, 0.2);
-  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
 }
+
 
 /* Light mode overrides */
 
@@ -137,5 +146,21 @@ body.light .nav-btn:hover {
 body.light .nav-btn.active {
   background: rgba(37, 99, 235, 0.15);
   color: #2563eb;
+}
+
+/* =========================
+   App Background
+   ========================= */
+
+body.dark {
+  background: radial-gradient(
+    circle at top,
+    #020617,
+    #010314 70%
+  );
+}
+
+body.light {
+  background: #f1f5f9;
 }
 
