@@ -193,3 +193,23 @@
   margin: auto;
   opacity: 0.6;
 }
+
+/* =========================
+   Premium Chat Surface
+   ========================= */
+
+.public-chat-container {
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(6px);
+  border-radius: 16px;
+  margin: 16px;
+  height: calc(100% - 32px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Light mode */
+
+body.light .public-chat-container {
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
