@@ -7,11 +7,21 @@
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+
+  /* 💙 Modern vibey blue surface */
+  background: linear-gradient(
+    180deg,
+    rgba(30, 64, 175, 0.28),
+    rgba(15, 23, 42, 0.95)
+  );
+
+  border-radius: 14px;
 }
+
 
 .chat-bubble {
   max-width: 70%;
@@ -199,12 +209,10 @@
    ========================= */
 
 .public-chat-container {
-  background: rgba(2, 6, 23, 0.85);
-  backdrop-filter: blur(6px);
+  background: transparent; /* IMPORTANT */
   border-radius: 16px;
   margin: 16px;
   height: calc(100% - 32px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
 }
 
 /* Light mode */
@@ -212,4 +220,39 @@
 body.light .public-chat-container {
   background: #ffffff;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* =========================
+   Light Mode Message Canvas
+   ========================= */
+
+body.light .chat-messages {
+  background: linear-gradient(
+    180deg,
+    rgba(219, 234, 254, 0.95),
+    rgba(241, 245, 249, 0.98)
+  );
+}
+
+/* =========================
+   FINAL MESSAGE CANVAS FIX
+   ========================= */
+
+.messages {
+  background: linear-gradient(
+    180deg,
+    rgba(30, 64, 175, 0.35),
+    rgba(15, 23, 42, 0.95)
+  ) !important;
+
+  border-radius: 14px;
+  padding: 24px;
+}
+
+body.light .messages {
+  background: linear-gradient(
+    180deg,
+    rgba(219, 234, 254, 0.95),
+    rgba(241, 245, 249, 0.98)
+  ) !important;
 }
