@@ -1,15 +1,3 @@
-.app-layout {
-  display: flex;
-  height: 100vh;
-  background: linear-gradient(135deg, #020617, #020617);
-}
-
-.main-content {
-  flex: 1;
-  padding: 20px;
-  overflow: hidden;
-}
-
 /* =========================
    App Header
    ========================= */
@@ -25,7 +13,6 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
   z-index: 50;
 }
-
 
 .app-header-left {
   display: flex;
@@ -46,12 +33,45 @@
 }
 
 /* =========================
-   App Main Layout
+   App Main Layout (REAL)
    ========================= */
 
 .app-main {
-  height: calc(100vh - 64px); /* header height */
+  height: calc(100vh - 64px);
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   overflow: hidden;
+  background: transparent;
+}
+
+/* =========================
+   Chat Container (Canvas)
+   ========================= */
+
+.chat-container {
+  width: 100%;
+  max-width: 1100px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  /* 👇 Vibey modern blue canvas */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(30, 58, 138, 0.35),
+      rgba(15, 23, 42, 0.85)
+    );
+
+  border-radius: 18px;
+  padding: 24px;
+
+  backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 20px 40px rgba(0, 0, 0, 0.35);
 }
 
 /* =========================
@@ -59,48 +79,60 @@
    ========================= */
 
 body.dark {
-  background-color: #020617;
-  color: #f8fafc;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(56, 189, 248, 0.25),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(34, 197, 94, 0.22),
+      transparent 40%
+    ),
+    linear-gradient(
+      180deg,
+      #020617,
+      #020617 40%,
+      #020617
+    );
 }
 
 body.light {
-  background-color: #f8fafc;
-  color: #020617;
-}
-
-/* Header overrides */
-
-body.light .app-header {
-  background: linear-gradient(90deg, #e5e7eb, #f9fafb);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-body.light .app-title {
-  color: #020617;
-}
-
-body.light .theme-toggle {
-  color: #020617;
-}
-
-/* Theme toggle button */
-
-.theme-toggle {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #f8fafc;
-  padding: 6px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-body.light .theme-toggle {
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  background:
+    radial-gradient(
+      circle at top,
+      #ffffff,
+      #e5e7eb 65%
+    );
 }
 
 /* =========================
-   App Navigation
+   Subtle Texture Overlay
+   ========================= */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.02) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.02) 50%,
+      rgba(255, 255, 255, 0.02) 75%,
+      transparent 75%,
+      transparent
+    );
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* =========================
+   Navigation
    ========================= */
 
 .app-nav {
@@ -121,7 +153,6 @@ body.light .theme-toggle {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-
 .nav-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
@@ -131,7 +162,6 @@ body.light .theme-toggle {
   background: rgba(56, 189, 248, 0.18);
   color: #7dd3fc;
 }
-
 
 /* Light mode overrides */
 
@@ -149,18 +179,32 @@ body.light .nav-btn.active {
 }
 
 /* =========================
-   App Background
+   Light Mode Header Fixes
    ========================= */
 
-body.dark {
-  background: radial-gradient(
-    circle at top,
-    #020617,
-    #010314 70%
+body.light .app-header {
+  background: linear-gradient(
+    180deg,
+    #f8fafc,
+    #e5e7eb
   );
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-body.light {
-  background: #f1f5f9;
+body.light .app-title {
+  color: #020617;
 }
 
+body.light .nav-btn {
+  color: rgba(2, 6, 23, 0.75);
+}
+
+body.light .nav-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #020617;
+}
+
+body.light .nav-btn.active {
+  background: rgba(37, 99, 235, 0.15);
+  color: #2563eb;
+}
