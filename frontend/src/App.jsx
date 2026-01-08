@@ -1,7 +1,13 @@
 import { Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
+
 import AppHeader from "./components/AppHeader";
 import PublicChat from "./components/PublicChat";
+
+import BusinessDirectory from "./pages/BusinessDirectory";
+import Marketplace from "./pages/Marketplace";
+import DirectMessages from "./pages/DirectMessages";
+
 import "./styles/layout.css";
 
 export default function App() {
@@ -18,6 +24,9 @@ export default function App() {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<PublicChat />} />
+          <Route path="/directory" element={<BusinessDirectory />} />
+          <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/messages" element={<DirectMessages />} />
         </Routes>
       </main>
     </>
