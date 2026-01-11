@@ -24,28 +24,63 @@ export default function PublicChat() {
   const [file, setFile] = useState(null);
   const [showEmojis, setShowEmojis] = useState(false);
 
+  const [hoveredId, setHoveredId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+
   const bottomRef = useRef(null);
+
+  /* =====================
+     SOCKET LISTENERS
+     ===================== */
 
   useEffect(() => {
     if (!socket) return;
 
-    const handler = (msg) => {
-      setMessages((prev) => [...prev, msg]);
+    const onMessage = (msg) => {
+      setMessages((prev) => [
+        ...prev,
+        { id: msg.id || crypto.randomUUID(), ...msg },
+      ]);
     };
 
-    socket.on("publicMessage", handler);
-    return () => socket.off("publicMessage", handler);
+    const onEdit = ({ id, text }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === id ? { ...m, text, edited: true } : m
+        )
+      );
+    };
+
+    const onDelete = ({ id }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+    };
+
+    socket.on("publicMessage", onMessage);
+    socket.on("publicEdit", onEdit);
+    socket.on("publicDelete", onDelete);
+
+    return () => {
+      socket.off("publicMessage", onMessage);
+      socket.off("publicEdit", onEdit);
+      socket.off("publicDelete", onDelete);
+    };
   }, [socket]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /* =====================
+     SEND MESSAGE
+     ===================== */
+
   const sendMessage = () => {
     if (!socket) return;
     if (!message.trim() && !file) return;
 
     const payload = {
+      id: crypto.randomUUID(),
       user: user?.username || "Anonymous",
       time: new Date().toLocaleTimeString([], {
         hour: "2-digit",
@@ -77,22 +112,86 @@ export default function PublicChat() {
     setShowEmojis(false);
   };
 
+  /* =====================
+     EDIT / DELETE
+     ===================== */
+
+  const startEdit = (m) => {
+    setEditingId(m.id);
+    setEditText(m.text || "");
+  };
+
+  const saveEdit = (id) => {
+    socket.emit("publicEdit", { id, text: editText });
+    setEditingId(null);
+    setEditText("");
+  };
+
+  const deleteMessage = (id) => {
+    if (!window.confirm("Delete this message?")) return;
+    socket.emit("publicDelete", { id });
+  };
+
+  /* =====================
+     RENDER
+     ===================== */
+
   return (
     <div className="chat-container">
       <h1>Public Chat</h1>
 
       <div className="messages">
-        {messages.map((m, i) => (
-          <div key={i} className="message">
-            <strong>{m.user}</strong>
-            {m.text && <div>{m.text}</div>}
-            {m.file && (
-              m.file.type.startsWith("image/")
-                ? <img src={m.file.data} alt="" className="chat-image" />
-                : <a href={m.file.data} download={m.file.name}>
-                    📎 {m.file.name}
-                  </a>
+        {messages.map((m) => (
+          <div
+            key={m.id}
+            className="message"
+            onMouseEnter={() => setHoveredId(m.id)}
+            onMouseLeave={() => setHoveredId(null)}
+          >
+            <div className="message-header">
+              <strong>{m.user}</strong>
+
+              {m.user === user?.username && hoveredId === m.id && (
+                <span className="message-actions">
+                  <span onClick={() => startEdit(m)}>✏️</span>
+                  <span onClick={() => deleteMessage(m.id)}>🗑</span>
+                </span>
+              )}
+            </div>
+
+            {editingId === m.id ? (
+              <div className="edit-box">
+                <input
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && saveEdit(m.id)
+                  }
+                  autoFocus
+                />
+                <button onClick={() => saveEdit(m.id)}>Save</button>
+              </div>
+            ) : (
+              m.text && (
+                <div>
+                  {m.text} {m.edited && <em>(edited)</em>}
+                </div>
+              )
             )}
+
+            {m.file &&
+              (m.file.type.startsWith("image/") ? (
+                <img
+                  src={m.file.data}
+                  alt=""
+                  className="chat-image"
+                />
+              ) : (
+                <a href={m.file.data} download={m.file.name}>
+                  📎 {m.file.name}
+                </a>
+              ))}
+
             <div className="time">{m.time}</div>
           </div>
         ))}
