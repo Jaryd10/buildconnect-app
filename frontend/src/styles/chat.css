@@ -96,3 +96,39 @@ body.light .messages {
     rgba(241, 245, 249, 0.98)
   ) !important;
 }
+
+/* =========================
+   Message Edit / Delete UI
+   ========================= */
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.message-actions {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.message:hover .message-actions {
+  opacity: 1;
+}
+
+.message-actions span {
+  cursor: pointer;
+}
+
+.edit-box {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-box input {
+  flex: 1;
+  padding: 6px 8px;
+}
