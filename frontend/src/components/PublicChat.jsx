@@ -121,16 +121,48 @@ export default function PublicChat() {
     setEditText(m.text || "");
   };
 
-  const saveEdit = (id) => {
+  const saveEdit = async (id) => {
+  try {
+    await fetch(`http://localhost:4000/public/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: editText }),
+    });
+
     socket.emit("publicEdit", { id, text: editText });
+
     setEditingId(null);
     setEditText("");
-  };
+  } catch (err) {
+    console.error("Edit failed", err);
+  }
+};
 
-  const deleteMessage = (id) => {
-    if (!window.confirm("Delete this message?")) return;
-    socket.emit("publicDelete", { id });
-  };
+
+ const handleDelete = async (msg) => {
+  if (!msg.id || isNaN(msg.id)) {
+    console.error("Invalid DB id for delete:", msg.id);
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `http://localhost:4000/public/messages/${msg.id}`,
+      { method: "DELETE" }
+    );
+
+    if (!res.ok) {
+      throw new Error("Delete failed");
+    }
+
+    setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+
 
   /* =====================
      RENDER
@@ -154,7 +186,6 @@ export default function PublicChat() {
               {m.user === user?.username && hoveredId === m.id && (
                 <span className="message-actions">
                   <span onClick={() => startEdit(m)}>✏️</span>
-                  <span onClick={() => deleteMessage(m.id)}>🗑</span>
                 </span>
               )}
             </div>
