@@ -258,3 +258,39 @@ body.dark .profile-text {
   height: 1px;
   background: rgba(255, 255, 255, 0.15);
 }
+
+/* =========================
+   Business Directory
+   ========================= */
+
+.directory-page {
+  min-height: 100%;
+}
+
+.directory-card {
+  border-radius: 16px;
+}
+
+/* LIGHT MODE */
+
+body.light .directory-card {
+  background: #ffffff;
+  color: #111827;
+}
+
+body.light .directory-sub,
+body.light .directory-text {
+  color: #4b5563;
+}
+
+/* DARK MODE */
+
+body.dark .directory-card {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f9fafb;
+}
+
+body.dark .directory-sub,
+body.dark .directory-text {
+  color: rgba(255, 255, 255, 0.75);
+}
