@@ -415,3 +415,61 @@ body.dark .dm-sub {
   display: flex;
   gap: 8px;
 }
+
+/* =========================
+   Mobile Responsiveness
+   ========================= */
+
+/* Tablets & down */
+@media (max-width: 900px) {
+  .app-main {
+    padding: 16px;
+  }
+}
+
+/* Phones */
+@media (max-width: 600px) {
+  /* Header spacing */
+  header {
+    padding: 12px 16px;
+  }
+
+  /* Global */
+  h1 {
+    font-size: 22px;
+  }
+
+  /* Profile */
+  .profile-card {
+    padding: 20px;
+  }
+
+  /* Directory & Marketplace cards */
+  .directory-card,
+  .marketplace-card {
+    flex-direction: column;
+  }
+
+  .directory-card button,
+  .marketplace-card button {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  /* Direct Messages layout */
+  .dm-page {
+    flex-direction: column;
+  }
+
+  .dm-list {
+    width: 100%;
+  }
+
+  .dm-panel {
+    width: 100%;
+  }
+
+  .dm-message {
+    max-width: 85%;
+  }
+}
