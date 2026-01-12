@@ -330,3 +330,88 @@ body.dark .marketplace-sub,
 body.dark .marketplace-text {
   color: rgba(255, 255, 255, 0.75);
 }
+
+/* =========================
+   Direct Messages
+   ========================= */
+
+.dm-page {
+  gap: 24px;
+}
+
+/* Panels */
+
+.dm-list,
+.dm-panel {
+  border-radius: 16px;
+  padding: 16px;
+}
+
+/* LIGHT MODE */
+
+body.light .dm-list,
+body.light .dm-panel {
+  background: #ffffff;
+  color: #111827;
+}
+
+body.light .dm-sub {
+  color: #4b5563;
+}
+
+/* DARK MODE */
+
+body.dark .dm-list,
+body.dark .dm-panel {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f9fafb;
+}
+
+body.dark .dm-sub {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Conversation list */
+
+.dm-conversation {
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.dm-conversation.active {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+/* Messages */
+
+.dm-messages {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.dm-message {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  max-width: 70%;
+}
+
+.dm-message.them {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dm-message.me {
+  background: rgba(56, 189, 248, 0.35);
+  align-self: flex-end;
+}
+
+/* Input */
+
+.dm-input-row {
+  display: flex;
+  gap: 8px;
+}
