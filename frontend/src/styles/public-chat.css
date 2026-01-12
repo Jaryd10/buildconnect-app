@@ -256,3 +256,33 @@ body.light .messages {
     rgba(241, 245, 249, 0.98)
   ) !important;
 }
+
+.message-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.message-user {
+  font-weight: 600;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.message-user:hover {
+  text-decoration: underline;
+}

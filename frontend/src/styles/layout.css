@@ -208,3 +208,53 @@ body.light .nav-btn.active {
   background: rgba(37, 99, 235, 0.15);
   color: #2563eb;
 }
+
+/* =========================
+   Profile Page
+   ========================= */
+
+.profile-page {
+  min-height: 100%;
+}
+
+.profile-card {
+  border-radius: 16px;
+  padding: 32px;
+}
+
+/* LIGHT MODE */
+
+body.light .profile-page {
+  background: #f3f4f6;
+}
+
+body.light .profile-card {
+  background: #ffffff;
+  color: #111827;
+}
+
+body.light .profile-sub,
+body.light .profile-text {
+  color: #4b5563;
+}
+
+/* DARK MODE */
+
+body.dark .profile-page {
+  background: transparent;
+}
+
+body.dark .profile-card {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f9fafb;
+}
+
+body.dark .profile-sub,
+body.dark .profile-text {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.profile-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+}
