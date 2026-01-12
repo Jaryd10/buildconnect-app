@@ -294,3 +294,39 @@ body.dark .directory-sub,
 body.dark .directory-text {
   color: rgba(255, 255, 255, 0.75);
 }
+
+/* =========================
+   Marketplace
+   ========================= */
+
+.marketplace-page {
+  min-height: 100%;
+}
+
+.marketplace-card {
+  border-radius: 16px;
+}
+
+/* LIGHT MODE */
+
+body.light .marketplace-card {
+  background: #ffffff;
+  color: #111827;
+}
+
+body.light .marketplace-sub,
+body.light .marketplace-text {
+  color: #4b5563;
+}
+
+/* DARK MODE */
+
+body.dark .marketplace-card {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f9fafb;
+}
+
+body.dark .marketplace-sub,
+body.dark .marketplace-text {
+  color: rgba(255, 255, 255, 0.75);
+}
