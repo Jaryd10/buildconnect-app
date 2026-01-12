@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSocket } from "../context/SocketContext";
 import { useUser } from "../context/UserContext";
 import "../styles/chat.css";
+import { Link } from "react-router-dom";
 
 const EMOJIS = [
   "😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊",
@@ -30,18 +31,11 @@ export default function PublicChat() {
 
   const bottomRef = useRef(null);
 
-  /* =====================
-     SOCKET LISTENERS
-     ===================== */
-
   useEffect(() => {
     if (!socket) return;
 
     const onMessage = (msg) => {
-      setMessages((prev) => [
-        ...prev,
-        { id: msg.id || crypto.randomUUID(), ...msg },
-      ]);
+      setMessages((prev) => [...prev, msg]);
     };
 
     const onEdit = ({ id, text }) => {
@@ -52,18 +46,12 @@ export default function PublicChat() {
       );
     };
 
-    const onDelete = ({ id }) => {
-      setMessages((prev) => prev.filter((m) => m.id !== id));
-    };
-
     socket.on("publicMessage", onMessage);
     socket.on("publicEdit", onEdit);
-    socket.on("publicDelete", onDelete);
 
     return () => {
       socket.off("publicMessage", onMessage);
       socket.off("publicEdit", onEdit);
-      socket.off("publicDelete", onDelete);
     };
   }, [socket]);
 
@@ -71,17 +59,18 @@ export default function PublicChat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* =====================
-     SEND MESSAGE
-     ===================== */
-
   const sendMessage = () => {
     if (!socket) return;
     if (!message.trim() && !file) return;
 
+    const username = user?.username || "Anonymous";
+
     const payload = {
       id: crypto.randomUUID(),
-      user: user?.username || "Anonymous",
+      user: username,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        username
+      )}&background=0D8ABC&color=fff`,
       time: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -112,66 +101,19 @@ export default function PublicChat() {
     setShowEmojis(false);
   };
 
-  /* =====================
-     EDIT / DELETE
-     ===================== */
-
   const startEdit = (m) => {
     setEditingId(m.id);
     setEditText(m.text || "");
   };
 
-  const saveEdit = async (id) => {
-  try {
-    await fetch(`http://localhost:4000/public/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: editText }),
-    });
-
+  const saveEdit = (id) => {
     socket.emit("publicEdit", { id, text: editText });
-
     setEditingId(null);
     setEditText("");
-  } catch (err) {
-    console.error("Edit failed", err);
-  }
-};
-
-
- const handleDelete = async (msg) => {
-  if (!msg.id || isNaN(msg.id)) {
-    console.error("Invalid DB id for delete:", msg.id);
-    return;
-  }
-
-  try {
-    const res = await fetch(
-      `http://localhost:4000/public/messages/${msg.id}`,
-      { method: "DELETE" }
-    );
-
-    if (!res.ok) {
-      throw new Error("Delete failed");
-    }
-
-    setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-
-
-
-  /* =====================
-     RENDER
-     ===================== */
+  };
 
   return (
     <div className="chat-container">
-      <h1>Public Chat</h1>
-
       <div className="messages">
         {messages.map((m) => (
           <div
@@ -181,7 +123,15 @@ export default function PublicChat() {
             onMouseLeave={() => setHoveredId(null)}
           >
             <div className="message-header">
-              <strong>{m.user}</strong>
+              {/* ✅ AVATAR → PROFILE */}
+              <Link to={`/profile/${m.user}`}>
+                <img src={m.avatar} alt="avatar" className="avatar" />
+              </Link>
+
+              {/* ✅ USERNAME → PROFILE */}
+              <Link to={`/profile/${m.user}`} className="username">
+                {m.user}
+              </Link>
 
               {m.user === user?.username && hoveredId === m.id && (
                 <span className="message-actions">
@@ -204,7 +154,7 @@ export default function PublicChat() {
               </div>
             ) : (
               m.text && (
-                <div>
+                <div className="message-text">
                   {m.text} {m.edited && <em>(edited)</em>}
                 </div>
               )
@@ -212,11 +162,7 @@ export default function PublicChat() {
 
             {m.file &&
               (m.file.type.startsWith("image/") ? (
-                <img
-                  src={m.file.data}
-                  alt=""
-                  className="chat-image"
-                />
+                <img src={m.file.data} alt="" className="chat-image" />
               ) : (
                 <a href={m.file.data} download={m.file.name}>
                   📎 {m.file.name}
