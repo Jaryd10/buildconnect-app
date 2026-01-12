@@ -43,7 +43,7 @@ export default function DirectMessages() {
     : [];
 
   return (
-    <div className="app-main dm-page">
+    <div className="app-main dm-page" style={{ display: "flex", gap: 24 }}>
       {/* Conversations list */}
       <div className="dm-list">
         <h3 className="dm-title">Messages</h3>
