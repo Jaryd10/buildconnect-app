@@ -1,48 +1,70 @@
 const express = require("express");
-const multer = require("multer");
+const router = express.Router();
 const db = require("../db");
 
-const router = express.Router();
+/* =========================
+   SAVE MESSAGE
+========================= */
+router.post("/", (req, res) => {
+  const { user, text, file } = req.body;
 
-/* ---------- UPLOAD CONFIG ---------- */
-const storage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (_, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
+  db.run(
+    `INSERT INTO messages (user, text, file)
+     VALUES (?, ?, ?)`,
+    [user, text || null, file ? JSON.stringify(file) : null],
+    function (err) {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Insert failed" });
+      }
+
+      res.json({ dbId: this.lastID });
+    }
+  );
 });
 
-const upload = multer({ storage });
+/* =========================
+   EDIT MESSAGE
+========================= */
+router.put("/:dbId", (req, res) => {
+  const { text } = req.body;
+  const { dbId } = req.params;
 
-/* ---------- GET MESSAGES ---------- */
-router.get("/", (req, res) => {
-  const messages = db
-    .prepare("SELECT * FROM messages ORDER BY id ASC")
-    .all();
-  res.json(messages);
+  db.run(
+    `UPDATE messages SET text = ? WHERE id = ?`,
+    [text, dbId],
+    function (err) {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Edit failed" });
+      }
+      res.sendStatus(200);
+    }
+  );
 });
 
-/* ---------- POST MESSAGE ---------- */
-router.post("/", upload.single("file"), (req, res) => {
-  const { user, text } = req.body;
-  const file = req.file ? req.file.filename : null;
+/* =========================
+   DELETE MESSAGE
+========================= */
+router.delete("/messages/:dbId", (req, res) => {
+  const { dbId } = req.params;
 
-  if (!user || (!text && !file)) {
-    return res.status(400).json({ error: "Invalid message" });
-  }
+  db.run(
+    `DELETE FROM messages WHERE id = ?`,
+    [dbId],
+    function (err) {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Delete failed" });
+      }
 
-  const result = db
-    .prepare(
-      `INSERT INTO messages (user, text, file)
-       VALUES (?, ?, ?)`
-    )
-    .run(user, text || null, file);
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "Message not found" });
+      }
 
-  const saved = db
-    .prepare("SELECT * FROM messages WHERE id = ?")
-    .get(result.lastInsertRowid);
-
-  res.json(saved);
+      res.sendStatus(200);
+    }
+  );
 });
 
 module.exports = router;

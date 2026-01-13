@@ -1,0 +1,12 @@
+# Node
+node_modules/
+
+# Databases
+*.db
+
+# OS junk
+.DS_Store
+
+# Env
+.env
+
