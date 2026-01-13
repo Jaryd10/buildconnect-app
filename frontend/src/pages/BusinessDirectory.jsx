@@ -4,16 +4,6 @@ import BusinessCard from "../components/BusinessCard";
 
 const API_URL = "http://localhost:4000";
 
-const demoBusiness = {
-  id: "demo-1",
-  name: "BrightSpark Electrical",
-  category: "Electrician",
-  city: "George, WC",
-  services: ["Residential", "Solar", "COC"],
-  description:
-    "Certified electricians offering residential, solar, and compliance services.",
-};
-
 export default function BusinessDirectory() {
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,9 +28,6 @@ export default function BusinessDirectory() {
 
     fetchDirectory();
   }, [search]);
-
-  const displayBusinesses =
-    !loading && businesses.length === 0 ? [demoBusiness] : businesses;
 
   return (
     <div className="app-main directory-page">
@@ -70,8 +57,7 @@ export default function BusinessDirectory() {
             <div className="directory-empty-text">
               <strong>No businesses found.</strong>
               <span>
-                Showing an example listing below. Real businesses will appear
-                here once they join.
+                Try adjusting your search or check back later.
               </span>
             </div>
           )}
@@ -83,8 +69,8 @@ export default function BusinessDirectory() {
         {loading && <p className="directory-loading">Loading directory…</p>}
 
         {!loading &&
-          displayBusinesses.map((biz) => (
-            <BusinessCard key={biz.id} business={biz} />
+          businesses.map((biz) => (
+            <BusinessCard key={biz.id || biz._id} business={biz} />
           ))}
       </section>
     </div>
