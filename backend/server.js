@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 // Routes
 const publicRoutes = require("./routes/public");
 const authRoutes = require("./routes/auth");
+const directoryRoutes = require("./routes/directory");
 
 const app = express();
 const server = http.createServer(app);
@@ -23,6 +24,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use("/directory", directoryRoutes);
 
 /* =========================
    REST ROUTES
