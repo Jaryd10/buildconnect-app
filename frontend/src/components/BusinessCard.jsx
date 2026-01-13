@@ -1,17 +1,22 @@
 import "./BusinessCard.css";
 
 export default function BusinessCard({ business }) {
+  if (!business) return null;
+
+  const name = business.name || "Business";
+  const avatarLetter = name.charAt(0).toUpperCase();
+
   return (
     <div className="business-card">
       <div className="business-card-header">
         <div className="business-avatar">
-          {business.name.charAt(0)}
+          {avatarLetter}
         </div>
 
         <div className="business-meta">
-          <h3>{business.name}</h3>
+          <h3>{name}</h3>
           <p className="business-sub">
-            {business.category} • {business.city}
+            {[business.category, business.city].filter(Boolean).join(" • ")}
           </p>
         </div>
       </div>
