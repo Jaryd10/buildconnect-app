@@ -343,6 +343,15 @@ body.light .directory-page {
 /* =========================
    Marketplace
    ========================= */
+/* Marketplace page text visibility */
+
+body.dark .marketplace-page {
+  color: #e5e7eb; /* light gray for dark backgrounds */
+}
+
+body.light .marketplace-page {
+  color: #111827; /* dark text for light backgrounds */
+}
 
 .marketplace-page {
   min-height: 100%;
