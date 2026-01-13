@@ -2,9 +2,9 @@ const Database = require("better-sqlite3");
 
 const db = new Database("buildconnect.db");
 
-/* ---------- MESSAGES (EXISTING) ---------- */
+/* ---------- PUBLIC CHAT MESSAGES ---------- */
 db.prepare(`
-  CREATE TABLE IF NOT EXISTS messages (
+  CREATE TABLE IF NOT EXISTS public_messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user TEXT NOT NULL,
     text TEXT,
@@ -52,6 +52,55 @@ db.prepare(`
     started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     expires_at DATETIME,
     FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`).run();
+
+/* ---------- BUSINESS CATEGORIES ---------- */
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS business_categories (
+    id TEXT PRIMARY KEY,
+    slug TEXT UNIQUE,
+    label TEXT
+  )
+`).run();
+
+/* ---------- BUSINESSES ---------- */
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS businesses (
+    id TEXT PRIMARY KEY,
+    owner_user_id TEXT,
+    name TEXT,
+    category_id TEXT,
+    description TEXT,
+    country TEXT,
+    region TEXT,
+    city TEXT,
+    is_active INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(owner_user_id) REFERENCES users(id),
+    FOREIGN KEY(category_id) REFERENCES business_categories(id)
+  )
+`).run();
+
+/* ---------- CONVERSATIONS ---------- */
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS conversations (
+    id TEXT PRIMARY KEY,
+    user_one_id TEXT,
+    user_two_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`).run();
+
+/* ---------- DIRECT MESSAGES ---------- */
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS direct_messages (
+    id TEXT PRIMARY KEY,
+    conversation_id TEXT,
+    sender_user_id TEXT,
+    body TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(conversation_id) REFERENCES conversations(id)
   )
 `).run();
 
