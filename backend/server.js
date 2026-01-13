@@ -6,10 +6,41 @@ const { Server } = require("socket.io");
 // Routes
 const publicRoutes = require("./routes/public");
 const authRoutes = require("./routes/auth");
-const directoryRoutes = require("./routes/directory");
 
 const app = express();
 const server = http.createServer(app);
+
+/* =========================
+   TEMP LAUNCH SEED (Directory)
+   Replace with DB later
+========================= */
+
+const directorySeed = [
+  {
+    id: 1,
+    name: "BrightSpark Electrical",
+    category: "Electrician",
+    city: "George, WC",
+    services: ["Residential", "Solar", "COC"],
+    description: "Trusted local electrician serving George and surrounds.",
+  },
+  {
+    id: 2,
+    name: "Bayview Plumbing",
+    category: "Plumber",
+    city: "Mossel Bay, WC",
+    services: ["Repairs", "Installations", "Emergency"],
+    description: "Reliable plumbing services, available 24/7.",
+  },
+  {
+    id: 3,
+    name: "Garden Route Builders",
+    category: "Builder",
+    city: "Knysna, WC",
+    services: ["Renovations", "Extensions", "New Builds"],
+    description: "Quality building work from foundation to finish.",
+  },
+];
 
 /* =========================
    EXPRESS MIDDLEWARE
@@ -24,10 +55,18 @@ app.use(
 );
 
 app.use(express.json());
-app.use("/directory", directoryRoutes);
 
 /* =========================
-   REST ROUTES
+   DIRECTORY API (LAUNCH READY)
+========================= */
+
+// GET /directory
+app.get("/directory", (req, res) => {
+  res.json(directorySeed);
+});
+
+/* =========================
+   OTHER ROUTES
 ========================= */
 
 app.use("/public", publicRoutes);
