@@ -295,6 +295,16 @@ body.dark .directory-text {
   color: rgba(255, 255, 255, 0.75);
 }
 
+/* Directory page text visibility */
+
+body.dark .directory-page {
+  color: #e5e7eb; /* light gray for dark backgrounds */
+}
+
+body.light .directory-page {
+  color: #111827; /* dark text for light backgrounds */
+}
+
 /* =========================
    Marketplace
    ========================= */
