@@ -2,115 +2,92 @@ const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
-
-// Routes
-const publicRoutes = require("./routes/public");
-const authRoutes = require("./routes/auth");
-const messageRoutes = require("./routes/messages");
+const Database = require("better-sqlite3");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 
-/* =========================
-   GLOBAL MIDDLEWARE (MUST BE FIRST)
-========================= */
-
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
-
-// Explicitly handle all preflight requests
-app.options("*", cors());
-
+app.use(cors());
 app.use(express.json());
 
 /* =========================
-   TEMP LAUNCH SEED (Directory)
-   Replace with DB later
+   SQLite setup (SAFE)
 ========================= */
+const db = new Database(path.join(__dirname, "buildconnect.db"));
 
-const directorySeed = [
-  {
-    id: 1,
-    name: "BrightSpark Electrical",
-    category: "Electrician",
-    city: "George, WC",
-    services: ["Residential", "Solar", "COC"],
-    description: "Trusted local electrician serving George and surrounds.",
-  },
-  {
-    id: 2,
-    name: "Bayview Plumbing",
-    category: "Plumber",
-    city: "Mossel Bay, WC",
-    services: ["Repairs", "Installations", "Emergency"],
-    description: "Reliable plumbing services, available 24/7.",
-  },
-  {
-    id: 3,
-    name: "Garden Route Builders",
-    category: "Builder",
-    city: "Knysna, WC",
-    services: ["Renovations", "Extensions", "New Builds"],
-    description: "Quality building work from foundation to finish.",
-  },
-];
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS public_messages (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    text TEXT,
+    file TEXT,
+    created_at INTEGER
+  )
+`).run();
 
 /* =========================
-   ROUTES
+   Socket.io
 ========================= */
-
-// Directory (launch ready)
-app.get("/directory", (req, res) => {
-  res.json(directorySeed);
-});
-
-// Private messages (v1)
-app.use("/messages", messageRoutes);
-
-// Other routes
-app.use("/public", publicRoutes);
-app.use("/auth", authRoutes);
-
-/* =========================
-   SOCKET.IO (PUBLIC CHAT ONLY)
-========================= */
-
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
-  },
+    methods: ["GET", "POST"]
+  }
 });
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  socket.on("publicMessage", (data) => {
-    io.emit("publicMessage", data);
+  /* Send history on connect */
+  const history = db
+    .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
+    .all()
+    .map(row => ({
+      id: row.id,
+      user: row.username,
+      text: row.text,
+      file: row.file ? JSON.parse(row.file) : null,
+      time: new Date(row.created_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    }));
+
+  socket.emit("publicHistory", history);
+
+  /* New public message */
+  socket.on("publicMessage", (msg) => {
+    db.prepare(`
+      INSERT INTO public_messages (id, username, text, file, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      msg.id,
+      msg.user,
+      msg.text || null,
+      msg.file ? JSON.stringify(msg.file) : null,
+      Date.now()
+    );
+
+    io.emit("publicMessage", msg);
   });
 
-  socket.on("publicEdit", (data) => {
-    io.emit("publicEdit", data);
-  });
+  /* Edit message */
+  socket.on("publicEdit", ({ id, text }) => {
+    db.prepare(`
+      UPDATE public_messages
+      SET text = ?
+      WHERE id = ?
+    `).run(text, id);
 
-  socket.on("publicDelete", (data) => {
-    io.emit("publicDelete", data.id);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    io.emit("publicEdit", { id, text });
   });
 });
 
 /* =========================
-   START SERVER
+   Start server
 ========================= */
-
-server.listen(4000, () => {
-  console.log("🚀 Server running on http://localhost:4000");
+const PORT = 4000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

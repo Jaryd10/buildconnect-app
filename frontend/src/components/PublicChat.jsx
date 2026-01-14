@@ -34,6 +34,10 @@ export default function PublicChat() {
   useEffect(() => {
     if (!socket) return;
 
+    const onHistory = (history) => {
+      setMessages(history);
+    };
+
     const onMessage = (msg) => {
       setMessages((prev) => [...prev, msg]);
     };
@@ -46,10 +50,12 @@ export default function PublicChat() {
       );
     };
 
+    socket.on("publicHistory", onHistory);
     socket.on("publicMessage", onMessage);
     socket.on("publicEdit", onEdit);
 
     return () => {
+      socket.off("publicHistory", onHistory);
       socket.off("publicMessage", onMessage);
       socket.off("publicEdit", onEdit);
     };
@@ -101,63 +107,36 @@ export default function PublicChat() {
     setShowEmojis(false);
   };
 
-  const startEdit = (m) => {
-    setEditingId(m.id);
-    setEditText(m.text || "");
-  };
-
-  const saveEdit = (id) => {
-    socket.emit("publicEdit", { id, text: editText });
-    setEditingId(null);
-    setEditText("");
-  };
-
   return (
     <div className="chat-container">
       <div className="messages">
         {messages.map((m) => (
           <div
-            key={m.id}
+            key={m.id || m.created_at}
             className="message"
             onMouseEnter={() => setHoveredId(m.id)}
             onMouseLeave={() => setHoveredId(null)}
           >
             <div className="message-header">
-              {/* ✅ AVATAR → PROFILE */}
               <Link to={`/profile/${m.user}`}>
                 <img src={m.avatar} alt="avatar" className="avatar" />
               </Link>
 
-              {/* ✅ USERNAME → PROFILE */}
               <Link to={`/profile/${m.user}`} className="username">
                 {m.user}
               </Link>
 
               {m.user === user?.username && hoveredId === m.id && (
                 <span className="message-actions">
-                  <span onClick={() => startEdit(m)}>✏️</span>
+                  <span onClick={() => setEditingId(m.id)}>✏️</span>
                 </span>
               )}
             </div>
 
-            {editingId === m.id ? (
-              <div className="edit-box">
-                <input
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && saveEdit(m.id)
-                  }
-                  autoFocus
-                />
-                <button onClick={() => saveEdit(m.id)}>Save</button>
+            {m.text && (
+              <div className="message-text">
+                {m.text} {m.edited && <em>(edited)</em>}
               </div>
-            ) : (
-              m.text && (
-                <div className="message-text">
-                  {m.text} {m.edited && <em>(edited)</em>}
-                </div>
-              )
             )}
 
             {m.file &&
