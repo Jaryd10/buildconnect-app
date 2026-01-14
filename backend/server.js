@@ -6,9 +6,27 @@ const { Server } = require("socket.io");
 // Routes
 const publicRoutes = require("./routes/public");
 const authRoutes = require("./routes/auth");
+const messageRoutes = require("./routes/messages");
 
 const app = express();
 const server = http.createServer(app);
+
+/* =========================
+   GLOBAL MIDDLEWARE (MUST BE FIRST)
+========================= */
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
+
+// Explicitly handle all preflight requests
+app.options("*", cors());
+
+app.use(express.json());
 
 /* =========================
    TEMP LAUNCH SEED (Directory)
@@ -43,37 +61,23 @@ const directorySeed = [
 ];
 
 /* =========================
-   EXPRESS MIDDLEWARE
+   ROUTES
 ========================= */
 
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
-
-app.use(express.json());
-
-/* =========================
-   DIRECTORY API (LAUNCH READY)
-========================= */
-
-// GET /directory
+// Directory (launch ready)
 app.get("/directory", (req, res) => {
   res.json(directorySeed);
 });
 
-/* =========================
-   OTHER ROUTES
-========================= */
+// Private messages (v1)
+app.use("/messages", messageRoutes);
 
+// Other routes
 app.use("/public", publicRoutes);
 app.use("/auth", authRoutes);
 
 /* =========================
-   SOCKET.IO
+   SOCKET.IO (PUBLIC CHAT ONLY)
 ========================= */
 
 const io = new Server(server, {

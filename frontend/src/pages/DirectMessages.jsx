@@ -1,36 +1,18 @@
 import { useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 
-const MOCK_CONVERSATIONS = [
-  {
-    id: "1",
-    user: "John",
-    lastMessage: "Hey, are you available this week?",
-  },
-  {
-    id: "2",
-    user: "Jay",
-    lastMessage: "Thanks, I’ll confirm shortly.",
-  },
-];
-
-const MOCK_MESSAGES = {
-  John: [
-    { from: "John", text: "Hey, are you available this week?" },
-    { from: "Me", text: "Yes, I should be." },
-  ],
-  Jay: [
-    { from: "Jay", text: "Can you send a quote?" },
-    { from: "Me", text: "Sure, will do." },
-  ],
-};
+const API_URL = "http://localhost:4000";
 
 export default function DirectMessages() {
   const [searchParams] = useSearchParams();
   const preselectUser = searchParams.get("user");
 
   const [selectedUser, setSelectedUser] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const myName = localStorage.getItem("username") || "Me";
 
   useEffect(() => {
     if (preselectUser) {
@@ -38,31 +20,102 @@ export default function DirectMessages() {
     }
   }, [preselectUser]);
 
-  const messages = selectedUser
-    ? MOCK_MESSAGES[selectedUser] || []
-    : [];
+  useEffect(() => {
+    if (!selectedUser) return;
+
+    fetch(
+      `${API_URL}/messages?userA=${encodeURIComponent(
+        myName
+      )}&userB=${encodeURIComponent(selectedUser)}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setMessages(data);
+        }
+      })
+      .catch(console.error);
+  }, [selectedUser, myName]);
+useEffect(() => {
+  if (!selectedUser) return;
+
+  const interval = setInterval(() => {
+    fetch(
+      `${API_URL}/messages?userA=${encodeURIComponent(
+        myName
+      )}&userB=${encodeURIComponent(selectedUser)}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setMessages(data);
+        }
+      })
+      .catch(() => {});
+  }, 3000); // every 3 seconds
+
+  return () => clearInterval(interval);
+}, [selectedUser, myName]);
+
+  const sendMessage = async () => {
+    const text = message.trim();
+    if (!text || !selectedUser || sending) return;
+
+    setSending(true);
+
+    try {
+      const res = await fetch(`${API_URL}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: myName,
+          to: selectedUser,
+          text,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("Message send failed");
+        return;
+      }
+
+      setMessage("");
+
+      const refreshed = await fetch(
+        `${API_URL}/messages?userA=${encodeURIComponent(
+          myName
+        )}&userB=${encodeURIComponent(selectedUser)}`
+      );
+
+      const data = await refreshed.json();
+      if (Array.isArray(data)) {
+        setMessages(data);
+      }
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="app-main dm-page" style={{ display: "flex", gap: 24 }}>
-      {/* Conversations list */}
+      {/* Conversations */}
       <div className="dm-list">
         <h3 className="dm-title">Messages</h3>
 
-        {MOCK_CONVERSATIONS.map((c) => (
+        {["John", "Jay"].map((user) => (
           <div
-            key={c.id}
+            key={user}
             className={`dm-conversation ${
-              selectedUser === c.user ? "active" : ""
+              selectedUser === user ? "active" : ""
             }`}
-            onClick={() => setSelectedUser(c.user)}
+            onClick={() => setSelectedUser(user)}
           >
-            <strong>{c.user}</strong>
-            <p className="dm-sub">{c.lastMessage}</p>
+            <strong>{user}</strong>
           </div>
         ))}
       </div>
 
-      {/* Conversation panel */}
+      {/* Conversation */}
       <div className="dm-panel">
         {!selectedUser ? (
           <div className="dm-placeholder">
@@ -79,7 +132,7 @@ export default function DirectMessages() {
                 <div
                   key={i}
                   className={`dm-message ${
-                    m.from === "Me" ? "me" : "them"
+                    m.from === myName ? "me" : "them"
                   }`}
                 >
                   {m.text}
@@ -92,8 +145,11 @@ export default function DirectMessages() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type a message..."
+                disabled={sending}
               />
-              <button disabled>Send</button>
+              <button onClick={sendMessage} disabled={sending}>
+                Send
+              </button>
             </div>
           </>
         )}
