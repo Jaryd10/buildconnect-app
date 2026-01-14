@@ -1,5 +1,6 @@
 import { useSearchParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import "./DirectMessages.css";
 
 const API_URL = "http://localhost:4000";
 
@@ -13,13 +14,14 @@ export default function DirectMessages() {
   const [sending, setSending] = useState(false);
 
   const myName = localStorage.getItem("username") || "Me";
+  const bottomRef = useRef(null);
 
+  /* Preselect user from URL */
   useEffect(() => {
-    if (preselectUser) {
-      setSelectedUser(preselectUser);
-    }
+    if (preselectUser) setSelectedUser(preselectUser);
   }, [preselectUser]);
 
+  /* Initial load */
   useEffect(() => {
     if (!selectedUser) return;
 
@@ -29,33 +31,32 @@ export default function DirectMessages() {
       )}&userB=${encodeURIComponent(selectedUser)}`
     )
       .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setMessages(data);
-        }
-      })
-      .catch(console.error);
-  }, [selectedUser, myName]);
-useEffect(() => {
-  if (!selectedUser) return;
-
-  const interval = setInterval(() => {
-    fetch(
-      `${API_URL}/messages?userA=${encodeURIComponent(
-        myName
-      )}&userB=${encodeURIComponent(selectedUser)}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setMessages(data);
-        }
-      })
+      .then((data) => Array.isArray(data) && setMessages(data))
       .catch(() => {});
-  }, 3000); // every 3 seconds
+  }, [selectedUser, myName]);
 
-  return () => clearInterval(interval);
-}, [selectedUser, myName]);
+  /* Polling */
+  useEffect(() => {
+    if (!selectedUser) return;
+
+    const interval = setInterval(() => {
+      fetch(
+        `${API_URL}/messages?userA=${encodeURIComponent(
+          myName
+        )}&userB=${encodeURIComponent(selectedUser)}`
+      )
+        .then((res) => res.json())
+        .then((data) => Array.isArray(data) && setMessages(data))
+        .catch(() => {});
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [selectedUser, myName]);
+
+  /* Auto-scroll */
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const sendMessage = async () => {
     const text = message.trim();
@@ -63,88 +64,73 @@ useEffect(() => {
 
     setSending(true);
 
-    try {
-      const res = await fetch(`${API_URL}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: myName,
-          to: selectedUser,
-          text,
-        }),
-      });
+    await fetch(`${API_URL}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: myName,
+        to: selectedUser,
+        text,
+      }),
+    });
 
-      if (!res.ok) {
-        console.error("Message send failed");
-        return;
-      }
-
-      setMessage("");
-
-      const refreshed = await fetch(
-        `${API_URL}/messages?userA=${encodeURIComponent(
-          myName
-        )}&userB=${encodeURIComponent(selectedUser)}`
-      );
-
-      const data = await refreshed.json();
-      if (Array.isArray(data)) {
-        setMessages(data);
-      }
-    } finally {
-      setSending(false);
-    }
+    setMessage("");
+    setSending(false);
   };
 
   return (
-    <div className="app-main dm-page" style={{ display: "flex", gap: 24 }}>
+    <div className="dm-container">
       {/* Conversations */}
-      <div className="dm-list">
-        <h3 className="dm-title">Messages</h3>
-
+      <aside className="dm-sidebar">
+        <h3>Messages</h3>
         {["John", "Jay"].map((user) => (
-          <div
+          <button
             key={user}
-            className={`dm-conversation ${
-              selectedUser === user ? "active" : ""
-            }`}
+            className={`dm-user ${selectedUser === user ? "active" : ""}`}
             onClick={() => setSelectedUser(user)}
           >
-            <strong>{user}</strong>
-          </div>
+            {user}
+          </button>
         ))}
-      </div>
+      </aside>
 
-      {/* Conversation */}
-      <div className="dm-panel">
+      {/* Chat */}
+      <section className="dm-chat">
         {!selectedUser ? (
-          <div className="dm-placeholder">
-            Select a conversation to start messaging
+          <div className="dm-empty">
+            Select a conversation to start chatting
           </div>
         ) : (
           <>
-            <h3 className="dm-title">
+            <header className="dm-header">
               Conversation with {selectedUser}
-            </h3>
+            </header>
 
             <div className="dm-messages">
+              {messages.length === 0 && (
+                <div className="dm-no-messages">
+                  No messages yet
+                </div>
+              )}
+
               {messages.map((m, i) => (
                 <div
                   key={i}
-                  className={`dm-message ${
+                  className={`dm-bubble ${
                     m.from === myName ? "me" : "them"
                   }`}
                 >
                   {m.text}
                 </div>
               ))}
+              <div ref={bottomRef} />
             </div>
 
-            <div className="dm-input-row">
+            <div className="dm-input">
               <input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type a message..."
+                placeholder="Type a message…"
                 disabled={sending}
               />
               <button onClick={sendMessage} disabled={sending}>
@@ -153,7 +139,7 @@ useEffect(() => {
             </div>
           </>
         )}
-      </div>
+      </section>
     </div>
   );
 }
