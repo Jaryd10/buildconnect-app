@@ -1,15 +1,15 @@
 # OS files
 .DS_Store
 
-# Node
-node_modules
+# Node dependencies
+node_modules/
 
-# Local SQLite DB (do NOT deploy this)
+# Frontend build output
+dist/
+
+# Local SQLite databases
 *.db
 
-# Uploaded user files (do not deploy uploads)
-backend/uploads/*
-
-# Build output
-frontend/dist
+# User uploads (never commit)
+backend/uploads/
 
