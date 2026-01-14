@@ -8,13 +8,28 @@ const path = require("path");
 const app = express();
 const server = http.createServer(app);
 
+/* =========================
+   Middleware
+========================= */
 app.use(cors());
 app.use(express.json());
 
 /* =========================
-   SQLite setup (SAFE)
+   BASIC HTTP ROUTES (IMPORTANT)
 ========================= */
-const db = new Database(path.join(__dirname, "buildconnect.db"));
+app.get("/", (req, res) => {
+  res.status(200).send("BuildConnect backend is running ✅");
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
+/* =========================
+   SQLite setup (Render-safe)
+========================= */
+const dbPath = path.join(__dirname, "buildconnect.db");
+const db = new Database(dbPath);
 
 db.prepare(`
   CREATE TABLE IF NOT EXISTS public_messages (
@@ -31,7 +46,7 @@ db.prepare(`
 ========================= */
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
@@ -39,7 +54,6 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  /* Send history on connect */
   const history = db
     .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
     .all()
@@ -56,7 +70,6 @@ io.on("connection", (socket) => {
 
   socket.emit("publicHistory", history);
 
-  /* New public message */
   socket.on("publicMessage", (msg) => {
     db.prepare(`
       INSERT INTO public_messages (id, username, text, file, created_at)
@@ -72,7 +85,6 @@ io.on("connection", (socket) => {
     io.emit("publicMessage", msg);
   });
 
-  /* Edit message */
   socket.on("publicEdit", ({ id, text }) => {
     db.prepare(`
       UPDATE public_messages
@@ -85,9 +97,10 @@ io.on("connection", (socket) => {
 });
 
 /* =========================
-   Start server
+   Start server (Render-ready)
 ========================= */
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
+
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
