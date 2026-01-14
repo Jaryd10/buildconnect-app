@@ -15,3 +15,12 @@ backend/uploads/*
 # Build output
 frontend/dist
 
+# macOS system files
+.DS_Store
+
+# SQLite databases (local only)
+*.db
+
+# Uploaded files (local dev)
+backend/uploads/*
+
