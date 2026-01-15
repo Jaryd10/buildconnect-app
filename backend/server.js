@@ -33,9 +33,7 @@ app.get("/health", (req, res) => {
 const dbPath = path.join(__dirname, "buildconnect.db");
 const db = new Database(dbPath);
 
-/* =========================
-   PUBLIC CHAT TABLE
-========================= */
+/* Public chat table (existing) */
 db.prepare(`
   CREATE TABLE IF NOT EXISTS public_messages (
     id TEXT PRIMARY KEY,
@@ -47,37 +45,71 @@ db.prepare(`
 `).run();
 
 /* =========================
-   BUSINESS DIRECTORY TABLE
+   Directory businesses table
 ========================= */
 db.prepare(`
-  CREATE TABLE IF NOT EXISTS businesses (
-    id TEXT PRIMARY KEY,
+  CREATE TABLE IF NOT EXISTS directory_businesses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     trade TEXT NOT NULL,
     location TEXT NOT NULL,
+    phone TEXT,
     description TEXT
   )
 `).run();
 
+/* Seed directory businesses (only if empty) */
+const count = db
+  .prepare("SELECT COUNT(*) as count FROM directory_businesses")
+  .get().count;
+
+if (count === 0) {
+  const insert = db.prepare(`
+    INSERT INTO directory_businesses (name, trade, location, phone, description)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  insert.run(
+    "Smith Electrical",
+    "Electrician",
+    "George, WC",
+    "072 123 4567",
+    "Residential and commercial electrical installations"
+  );
+
+  insert.run(
+    "Coastal Builders",
+    "Builder",
+    "Mossel Bay, WC",
+    "083 987 6543",
+    "Boundary walls, renovations, and small builds"
+  );
+
+  insert.run(
+    "Precision Plumbing",
+    "Plumber",
+    "Knysna, WC",
+    "071 555 8899",
+    "Emergency plumbing and maintenance"
+  );
+
+  console.log("✅ Seeded directory businesses");
+}
+
 /* =========================
-   DIRECTORY API (NEW)
+   Directory API route
 ========================= */
-app.get("/directory", (req, res) => {
-  const q = (req.query.q || "").toLowerCase();
+app.get("/api/directory", (req, res) => {
+  try {
+    const businesses = db
+      .prepare("SELECT * FROM directory_businesses")
+      .all();
 
-  let rows = db.prepare(`
-    SELECT * FROM businesses
-  `).all();
-
-  if (q) {
-    rows = rows.filter(b =>
-      b.name.toLowerCase().includes(q) ||
-      b.trade.toLowerCase().includes(q) ||
-      b.location.toLowerCase().includes(q)
-    );
+    res.json(businesses);
+  } catch (err) {
+    console.error("Directory load error:", err);
+    res.status(500).json({ error: "Failed to load directory" });
   }
-
-  res.status(200).json(rows);
 });
 
 /* =========================
