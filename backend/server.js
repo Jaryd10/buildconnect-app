@@ -4,7 +4,6 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 const Database = require("better-sqlite3");
 const path = require("path");
-const directoryRoutes = require("./routes/directory");
 
 const app = express();
 const server = http.createServer(app);
@@ -14,10 +13,9 @@ const server = http.createServer(app);
 ========================= */
 app.use(cors());
 app.use(express.json());
-app.use("/api/directory", directoryRoutes);
 
 /* =========================
-   BASIC HTTP ROUTES
+   BASIC ROUTES
 ========================= */
 app.get("/", (req, res) => {
   res.status(200).send("BuildConnect backend is running ✅");
@@ -28,12 +26,14 @@ app.get("/health", (req, res) => {
 });
 
 /* =========================
-   SQLite setup (Render-safe)
+   SQLite (Render-safe)
 ========================= */
 const dbPath = path.join(__dirname, "buildconnect.db");
 const db = new Database(dbPath);
 
-/* Public chat table (existing) */
+/* =========================
+   Public Chat Table
+========================= */
 db.prepare(`
   CREATE TABLE IF NOT EXISTS public_messages (
     id TEXT PRIMARY KEY,
@@ -45,7 +45,7 @@ db.prepare(`
 `).run();
 
 /* =========================
-   Directory businesses table
+   Directory Businesses Table
 ========================= */
 db.prepare(`
   CREATE TABLE IF NOT EXISTS directory_businesses (
@@ -58,14 +58,17 @@ db.prepare(`
   )
 `).run();
 
-/* Seed directory businesses (only if empty) */
-const count = db
+/* =========================
+   Seed Directory (ONLY ONCE)
+========================= */
+const existing = db
   .prepare("SELECT COUNT(*) as count FROM directory_businesses")
   .get().count;
 
-if (count === 0) {
+if (existing === 0) {
   const insert = db.prepare(`
-    INSERT INTO directory_businesses (name, trade, location, phone, description)
+    INSERT INTO directory_businesses
+    (name, trade, location, phone, description)
     VALUES (?, ?, ?, ?, ?)
   `);
 
@@ -93,21 +96,21 @@ if (count === 0) {
     "Emergency plumbing and maintenance"
   );
 
-  console.log("✅ Seeded directory businesses");
+  console.log("✅ Directory seeded");
 }
 
 /* =========================
-   Directory API route
+   Directory API
 ========================= */
 app.get("/api/directory", (req, res) => {
   try {
-    const businesses = db
+    const rows = db
       .prepare("SELECT * FROM directory_businesses")
       .all();
 
-    res.json(businesses);
+    res.json(rows);
   } catch (err) {
-    console.error("Directory load error:", err);
+    console.error("Directory error:", err);
     res.status(500).json({ error: "Failed to load directory" });
   }
 });
@@ -116,34 +119,20 @@ app.get("/api/directory", (req, res) => {
    Socket.io (UNCHANGED)
 ========================= */
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
   const history = db
     .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
-    .all()
-    .map(row => ({
-      id: row.id,
-      user: row.username,
-      text: row.text,
-      file: row.file ? JSON.parse(row.file) : null,
-      time: new Date(row.created_at).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      })
-    }));
+    .all();
 
   socket.emit("publicHistory", history);
 
   socket.on("publicMessage", (msg) => {
     db.prepare(`
-      INSERT INTO public_messages (id, username, text, file, created_at)
+      INSERT INTO public_messages
+      (id, username, text, file, created_at)
       VALUES (?, ?, ?, ?, ?)
     `).run(
       msg.id,
@@ -157,18 +146,16 @@ io.on("connection", (socket) => {
   });
 
   socket.on("publicEdit", ({ id, text }) => {
-    db.prepare(`
-      UPDATE public_messages
-      SET text = ?
-      WHERE id = ?
-    `).run(text, id);
+    db.prepare(
+      "UPDATE public_messages SET text = ? WHERE id = ?"
+    ).run(text, id);
 
     io.emit("publicEdit", { id, text });
   });
 });
 
 /* =========================
-   Start server
+   Start Server
 ========================= */
 const PORT = process.env.PORT || 4000;
 
