@@ -4,17 +4,9 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 const Database = require("better-sqlite3");
 const path = require("path");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 
 const app = express();
 const server = http.createServer(app);
-
-/* =========================
-   CONFIG
-========================= */
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
-const SALT_ROUNDS = 10;
 
 /* =========================
    Middleware
@@ -40,20 +32,7 @@ const dbPath = path.join(__dirname, "buildconnect.db");
 const db = new Database(dbPath);
 
 /* =========================
-   USERS TABLE (AUTH)
-========================= */
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    created_at INTEGER
-  )
-`).run();
-
-/* =========================
-   PUBLIC CHAT TABLE
+   PUBLIC CHAT TABLE (UNCHANGED)
 ========================= */
 db.prepare(`
   CREATE TABLE IF NOT EXISTS public_messages (
@@ -61,6 +40,19 @@ db.prepare(`
     username TEXT NOT NULL,
     text TEXT,
     file TEXT,
+    created_at INTEGER
+  )
+`).run();
+
+/* =========================
+   DIRECT MESSAGES TABLE (NEW)
+========================= */
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS direct_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_user TEXT NOT NULL,
+    to_user TEXT NOT NULL,
+    text TEXT NOT NULL,
     created_at INTEGER
   )
 `).run();
@@ -117,94 +109,10 @@ if (count === 0) {
 }
 
 /* =========================
-   AUTH ROUTES
+   API ROUTES
 ========================= */
 
-/**
- * POST /api/auth/register
- * body: { username, email, password }
- */
-app.post("/api/auth/register", (req, res) => {
-  const { username, email, password } = req.body;
-
-  if (!username || !email || !password) {
-    return res.status(400).json({ error: "All fields required" });
-  }
-
-  const existing = db
-    .prepare(
-      "SELECT id FROM users WHERE username = ? OR email = ?"
-    )
-    .get(username, email);
-
-  if (existing) {
-    return res.status(409).json({ error: "User already exists" });
-  }
-
-  const passwordHash = bcrypt.hashSync(password, SALT_ROUNDS);
-
-  db.prepare(`
-    INSERT INTO users (username, email, password_hash, created_at)
-    VALUES (?, ?, ?, ?)
-  `).run(username, email, passwordHash, Date.now());
-
-  res.status(201).json({ message: "User registered successfully" });
-});
-
-/**
- * POST /api/auth/login
- * body: { identifier, password }
- * identifier = username OR email
- */
-app.post("/api/auth/login", (req, res) => {
-  const { identifier, password } = req.body;
-
-  if (!identifier || !password) {
-    return res.status(400).json({ error: "Missing credentials" });
-  }
-
-  const user = db
-    .prepare(
-      "SELECT * FROM users WHERE username = ? OR email = ?"
-    )
-    .get(identifier, identifier);
-
-  if (!user) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
-
-  const valid = bcrypt.compareSync(
-    password,
-    user.password_hash
-  );
-
-  if (!valid) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
-
-  const token = jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-    },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  res.json({
-    token,
-    user: {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-    },
-  });
-});
-
-/* =========================
-   API ROUTES (WIRED)
-========================= */
+/* Directory */
 app.get("/api/directory", (req, res) => {
   const rows = db
     .prepare("SELECT * FROM directory_businesses")
@@ -212,14 +120,12 @@ app.get("/api/directory", (req, res) => {
   res.json(rows);
 });
 
+/* Marketplace (placeholder) */
 app.get("/api/marketplace", (req, res) => {
   res.json([]);
 });
 
-app.get("/api/messages", (req, res) => {
-  res.json([]);
-});
-
+/* Profiles (placeholder) */
 app.get("/api/profile/:username", (req, res) => {
   res.json({
     username: req.params.username,
@@ -229,16 +135,81 @@ app.get("/api/profile/:username", (req, res) => {
 });
 
 /* =========================
-   SOCKET.IO (LOCKED)
+   DIRECT MESSAGES API (NEW)
+========================= */
+
+/**
+ * GET /api/messages?from=Alice&to=Bob
+ */
+app.get("/api/messages", (req, res) => {
+  const { from, to } = req.query;
+
+  if (!from || !to) {
+    return res.json([]);
+  }
+
+  const messages = db.prepare(`
+    SELECT from_user AS "from",
+           to_user AS "to",
+           text,
+           created_at
+    FROM direct_messages
+    WHERE
+      (from_user = ? AND to_user = ?)
+      OR
+      (from_user = ? AND to_user = ?)
+    ORDER BY created_at ASC
+  `).all(from, to, to, from);
+
+  res.json(messages);
+});
+
+/**
+ * POST /api/messages
+ * body: { from, to, text }
+ */
+app.post("/api/messages", (req, res) => {
+  const { from, to, text } = req.body;
+
+  if (!from || !to || !text) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  db.prepare(`
+    INSERT INTO direct_messages
+    (from_user, to_user, text, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(from, to, text, Date.now());
+
+  res.status(201).json({ success: true });
+});
+
+/* =========================
+   SOCKET.IO (PUBLIC CHAT ONLY)
 ========================= */
 const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] },
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
 });
 
 io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
   const history = db
     .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
-    .all();
+    .all()
+    .map((row) => ({
+      id: row.id,
+      user: row.username,
+      text: row.text,
+      file: row.file ? JSON.parse(row.file) : null,
+      time: new Date(row.created_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    }));
 
   socket.emit("publicHistory", history);
 
@@ -259,9 +230,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("publicEdit", ({ id, text }) => {
-    db.prepare(
-      "UPDATE public_messages SET text = ? WHERE id = ?"
-    ).run(text, id);
+    db.prepare(`
+      UPDATE public_messages
+      SET text = ?
+      WHERE id = ?
+    `).run(text, id);
 
     io.emit("publicEdit", { id, text });
   });
