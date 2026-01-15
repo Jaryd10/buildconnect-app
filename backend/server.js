@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 /* =========================
-   BASIC ROUTES
+   BASIC HTTP ROUTES
 ========================= */
 app.get("/", (req, res) => {
   res.status(200).send("BuildConnect backend is running ✅");
@@ -26,13 +26,13 @@ app.get("/health", (req, res) => {
 });
 
 /* =========================
-   SQLite (Render-safe)
+   SQLite setup (Render-safe)
 ========================= */
 const dbPath = path.join(__dirname, "buildconnect.db");
 const db = new Database(dbPath);
 
 /* =========================
-   Public Chat Table
+   Public chat table
 ========================= */
 db.prepare(`
   CREATE TABLE IF NOT EXISTS public_messages (
@@ -45,94 +45,97 @@ db.prepare(`
 `).run();
 
 /* =========================
-   Directory Businesses Table
-========================= */
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS directory_businesses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    trade TEXT NOT NULL,
-    location TEXT NOT NULL,
-    phone TEXT,
-    description TEXT
-  )
-`).run();
-
-/* =========================
-   Seed Directory (ONLY ONCE)
-========================= */
-const existing = db
-  .prepare("SELECT COUNT(*) as count FROM directory_businesses")
-  .get().count;
-
-if (existing === 0) {
-  const insert = db.prepare(`
-    INSERT INTO directory_businesses
-    (name, trade, location, phone, description)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-
-  insert.run(
-    "Smith Electrical",
-    "Electrician",
-    "George, WC",
-    "072 123 4567",
-    "Residential and commercial electrical installations"
-  );
-
-  insert.run(
-    "Coastal Builders",
-    "Builder",
-    "Mossel Bay, WC",
-    "083 987 6543",
-    "Boundary walls, renovations, and small builds"
-  );
-
-  insert.run(
-    "Precision Plumbing",
-    "Plumber",
-    "Knysna, WC",
-    "071 555 8899",
-    "Emergency plumbing and maintenance"
-  );
-
-  console.log("✅ Directory seeded");
-}
-
-/* =========================
-   Directory API
+   DIRECTORY API (seeded)
 ========================= */
 app.get("/api/directory", (req, res) => {
-  try {
-    const rows = db
-      .prepare("SELECT * FROM directory_businesses")
-      .all();
+  res.json([
+    {
+      id: 1,
+      name: "Smith Electrical",
+      trade: "Electrician",
+      location: "George, WC",
+      phone: "072 123 4567",
+      description: "Residential and commercial electrical installations"
+    },
+    {
+      id: 2,
+      name: "Coastal Builders",
+      trade: "Builder",
+      location: "Mossel Bay, WC",
+      phone: "083 987 6543",
+      description: "Boundary walls, renovations, and small builds"
+    },
+    {
+      id: 3,
+      name: "Precision Plumbing",
+      trade: "Plumber",
+      location: "Knysna, WC",
+      phone: "071 555 8899",
+      description: "Emergency plumbing and maintenance"
+    }
+  ]);
+});
 
-    res.json(rows);
-  } catch (err) {
-    console.error("Directory error:", err);
-    res.status(500).json({ error: "Failed to load directory" });
+/* =========================
+   PLACEHOLDER API ROUTES
+   (Wiring only – no auth)
+========================= */
+
+// Marketplace
+app.get("/api/marketplace", (req, res) => {
+  res.json([]);
+});
+
+// Messages (non-socket placeholder)
+app.get("/api/messages", (req, res) => {
+  res.json([]);
+});
+
+// Public profile placeholder
+app.get("/api/profile/:username", (req, res) => {
+  const { username } = req.params;
+
+  res.json({
+    username,
+    role: "user",
+    joined: "2026-01-01",
+    bio: "Public profile placeholder",
+    verified: false
+  });
+});
+
+/* =========================
+   Socket.io (LOCKED)
+========================= */
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
   }
 });
 
-/* =========================
-   Socket.io (UNCHANGED)
-========================= */
-const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] }
-});
-
 io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
   const history = db
     .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
-    .all();
+    .all()
+    .map(row => ({
+      id: row.id,
+      user: row.username,
+      text: row.text,
+      file: row.file ? JSON.parse(row.file) : null,
+      time: new Date(row.created_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    }));
 
   socket.emit("publicHistory", history);
 
   socket.on("publicMessage", (msg) => {
     db.prepare(`
-      INSERT INTO public_messages
-      (id, username, text, file, created_at)
+      INSERT INTO public_messages (id, username, text, file, created_at)
       VALUES (?, ?, ?, ?, ?)
     `).run(
       msg.id,
@@ -146,16 +149,18 @@ io.on("connection", (socket) => {
   });
 
   socket.on("publicEdit", ({ id, text }) => {
-    db.prepare(
-      "UPDATE public_messages SET text = ? WHERE id = ?"
-    ).run(text, id);
+    db.prepare(`
+      UPDATE public_messages
+      SET text = ?
+      WHERE id = ?
+    `).run(text, id);
 
     io.emit("publicEdit", { id, text });
   });
 });
 
 /* =========================
-   Start Server
+   Start server (Render-ready)
 ========================= */
 const PORT = process.env.PORT || 4000;
 
