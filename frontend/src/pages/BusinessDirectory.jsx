@@ -1,78 +1,70 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import api from "../api/api";
 import BusinessCard from "../components/BusinessCard";
-
-const API_URL = "http://localhost:4000";
 
 export default function BusinessDirectory() {
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const search = searchParams.get("q") || "";
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function fetchDirectory() {
+    let isMounted = true;
+
+    async function loadDirectory() {
       try {
-        const query = search ? `?q=${encodeURIComponent(search)}` : "";
-        const res = await fetch(`${API_URL}/directory${query}`);
-        const data = await res.json();
-        setBusinesses(Array.isArray(data) ? data : []);
+        const res = await api.get("/api/directory");
+
+        if (isMounted) {
+          setBusinesses(res.data);
+          setError(null);
+        }
       } catch (err) {
         console.error("Failed to load directory", err);
-        setBusinesses([]);
+        if (isMounted) {
+          setError("Failed to load directory");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
-    fetchDirectory();
-  }, [search]);
+    loadDirectory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
-    <div className="app-main directory-page">
-      {/* HERO */}
-      <section className="directory-hero">
-        <div className="directory-hero-left">
-          <h1 className="directory-title">Business Directory</h1>
-          <p className="directory-subtitle">
-            Find trusted trades and businesses near you
-          </p>
-        </div>
+    <div className="directory-page">
+      <h1 className="directory-title">Business Directory</h1>
+      <p className="directory-subtitle">
+        Find trusted trades and businesses near you
+      </p>
 
-        <div className="directory-hero-center">
-          <input
-            type="text"
-            className="directory-search"
-            placeholder="Search by name, trade, or location..."
-            value={search}
-            onChange={(e) =>
-              setSearchParams(e.target.value ? { q: e.target.value } : {})
-            }
-          />
-        </div>
+      <input
+        className="directory-search"
+        placeholder="Search by name, trade, or location..."
+        disabled
+      />
 
-        <div className="directory-hero-right">
-          {!loading && businesses.length === 0 && (
-            <div className="directory-empty-text">
-              <strong>No businesses found.</strong>
-              <span>
-                Try adjusting your search or check back later.
-              </span>
-            </div>
-          )}
-        </div>
-      </section>
+      {loading && <p className="directory-status">Loading businesses…</p>}
 
-      {/* RESULTS */}
-      <section className="directory-results">
-        {loading && <p className="directory-loading">Loading directory…</p>}
+      {error && <p className="directory-status error">{error}</p>}
 
-        {!loading &&
-          businesses.map((biz) => (
-            <BusinessCard key={biz.id || biz._id} business={biz} />
-          ))}
-      </section>
+      {!loading && !error && businesses.length === 0 && (
+        <p className="directory-status">
+          No businesses found. Try again later.
+        </p>
+      )}
+
+      <div className="directory-grid">
+        {businesses.map((biz) => (
+          <BusinessCard key={biz.id} business={biz} />
+        ))}
+      </div>
     </div>
   );
 }
