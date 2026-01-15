@@ -4,6 +4,7 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 const Database = require("better-sqlite3");
 const path = require("path");
+const directoryRoutes = require("./routes/directory");
 
 const app = express();
 const server = http.createServer(app);
@@ -13,9 +14,10 @@ const server = http.createServer(app);
 ========================= */
 app.use(cors());
 app.use(express.json());
+app.use("/api/directory", directoryRoutes);
 
 /* =========================
-   BASIC HTTP ROUTES (IMPORTANT)
+   BASIC HTTP ROUTES
 ========================= */
 app.get("/", (req, res) => {
   res.status(200).send("BuildConnect backend is running ✅");
@@ -31,6 +33,9 @@ app.get("/health", (req, res) => {
 const dbPath = path.join(__dirname, "buildconnect.db");
 const db = new Database(dbPath);
 
+/* =========================
+   PUBLIC CHAT TABLE
+========================= */
 db.prepare(`
   CREATE TABLE IF NOT EXISTS public_messages (
     id TEXT PRIMARY KEY,
@@ -42,7 +47,41 @@ db.prepare(`
 `).run();
 
 /* =========================
-   Socket.io
+   BUSINESS DIRECTORY TABLE
+========================= */
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS businesses (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    trade TEXT NOT NULL,
+    location TEXT NOT NULL,
+    description TEXT
+  )
+`).run();
+
+/* =========================
+   DIRECTORY API (NEW)
+========================= */
+app.get("/directory", (req, res) => {
+  const q = (req.query.q || "").toLowerCase();
+
+  let rows = db.prepare(`
+    SELECT * FROM businesses
+  `).all();
+
+  if (q) {
+    rows = rows.filter(b =>
+      b.name.toLowerCase().includes(q) ||
+      b.trade.toLowerCase().includes(q) ||
+      b.location.toLowerCase().includes(q)
+    );
+  }
+
+  res.status(200).json(rows);
+});
+
+/* =========================
+   Socket.io (UNCHANGED)
 ========================= */
 const io = new Server(server, {
   cors: {
@@ -97,7 +136,7 @@ io.on("connection", (socket) => {
 });
 
 /* =========================
-   Start server (Render-ready)
+   Start server
 ========================= */
 const PORT = process.env.PORT || 4000;
 
