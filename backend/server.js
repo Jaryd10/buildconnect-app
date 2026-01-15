@@ -4,9 +4,17 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 const Database = require("better-sqlite3");
 const path = require("path");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const server = http.createServer(app);
+
+/* =========================
+   CONFIG
+========================= */
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
+const SALT_ROUNDS = 10;
 
 /* =========================
    Middleware
@@ -15,7 +23,7 @@ app.use(cors());
 app.use(express.json());
 
 /* =========================
-   BASIC HTTP ROUTES
+   BASIC ROUTES
 ========================= */
 app.get("/", (req, res) => {
   res.status(200).send("BuildConnect backend is running ✅");
@@ -26,13 +34,26 @@ app.get("/health", (req, res) => {
 });
 
 /* =========================
-   SQLite setup (Render-safe)
+   SQLite (Render-safe)
 ========================= */
 const dbPath = path.join(__dirname, "buildconnect.db");
 const db = new Database(dbPath);
 
 /* =========================
-   Public chat table
+   USERS TABLE (AUTH)
+========================= */
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at INTEGER
+  )
+`).run();
+
+/* =========================
+   PUBLIC CHAT TABLE
 ========================= */
 db.prepare(`
   CREATE TABLE IF NOT EXISTS public_messages (
@@ -45,97 +66,186 @@ db.prepare(`
 `).run();
 
 /* =========================
-   DIRECTORY API (seeded)
+   DIRECTORY BUSINESSES TABLE
 ========================= */
-app.get("/api/directory", (req, res) => {
-  res.json([
-    {
-      id: 1,
-      name: "Smith Electrical",
-      trade: "Electrician",
-      location: "George, WC",
-      phone: "072 123 4567",
-      description: "Residential and commercial electrical installations"
-    },
-    {
-      id: 2,
-      name: "Coastal Builders",
-      trade: "Builder",
-      location: "Mossel Bay, WC",
-      phone: "083 987 6543",
-      description: "Boundary walls, renovations, and small builds"
-    },
-    {
-      id: 3,
-      name: "Precision Plumbing",
-      trade: "Plumber",
-      location: "Knysna, WC",
-      phone: "071 555 8899",
-      description: "Emergency plumbing and maintenance"
-    }
-  ]);
-});
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS directory_businesses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    trade TEXT NOT NULL,
+    location TEXT NOT NULL,
+    phone TEXT,
+    description TEXT
+  )
+`).run();
+
+/* Seed directory once */
+const count = db
+  .prepare("SELECT COUNT(*) as count FROM directory_businesses")
+  .get().count;
+
+if (count === 0) {
+  const insert = db.prepare(`
+    INSERT INTO directory_businesses
+    (name, trade, location, phone, description)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  insert.run(
+    "Smith Electrical",
+    "Electrician",
+    "George, WC",
+    "072 123 4567",
+    "Residential and commercial electrical installations"
+  );
+
+  insert.run(
+    "Coastal Builders",
+    "Builder",
+    "Mossel Bay, WC",
+    "083 987 6543",
+    "Boundary walls, renovations, and small builds"
+  );
+
+  insert.run(
+    "Precision Plumbing",
+    "Plumber",
+    "Knysna, WC",
+    "071 555 8899",
+    "Emergency plumbing and maintenance"
+  );
+}
 
 /* =========================
-   PLACEHOLDER API ROUTES
-   (Wiring only – no auth)
+   AUTH ROUTES
 ========================= */
 
-// Marketplace
-app.get("/api/marketplace", (req, res) => {
-  res.json([]);
+/**
+ * POST /api/auth/register
+ * body: { username, email, password }
+ */
+app.post("/api/auth/register", (req, res) => {
+  const { username, email, password } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: "All fields required" });
+  }
+
+  const existing = db
+    .prepare(
+      "SELECT id FROM users WHERE username = ? OR email = ?"
+    )
+    .get(username, email);
+
+  if (existing) {
+    return res.status(409).json({ error: "User already exists" });
+  }
+
+  const passwordHash = bcrypt.hashSync(password, SALT_ROUNDS);
+
+  db.prepare(`
+    INSERT INTO users (username, email, password_hash, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(username, email, passwordHash, Date.now());
+
+  res.status(201).json({ message: "User registered successfully" });
 });
 
-// Messages (non-socket placeholder)
-app.get("/api/messages", (req, res) => {
-  res.json([]);
-});
+/**
+ * POST /api/auth/login
+ * body: { identifier, password }
+ * identifier = username OR email
+ */
+app.post("/api/auth/login", (req, res) => {
+  const { identifier, password } = req.body;
 
-// Public profile placeholder
-app.get("/api/profile/:username", (req, res) => {
-  const { username } = req.params;
+  if (!identifier || !password) {
+    return res.status(400).json({ error: "Missing credentials" });
+  }
+
+  const user = db
+    .prepare(
+      "SELECT * FROM users WHERE username = ? OR email = ?"
+    )
+    .get(identifier, identifier);
+
+  if (!user) {
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
+
+  const valid = bcrypt.compareSync(
+    password,
+    user.password_hash
+  );
+
+  if (!valid) {
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
+
+  const token = jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+    },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
   res.json({
-    username,
-    role: "user",
-    joined: "2026-01-01",
-    bio: "Public profile placeholder",
-    verified: false
+    token,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+    },
   });
 });
 
 /* =========================
-   Socket.io (LOCKED)
+   API ROUTES (WIRED)
+========================= */
+app.get("/api/directory", (req, res) => {
+  const rows = db
+    .prepare("SELECT * FROM directory_businesses")
+    .all();
+  res.json(rows);
+});
+
+app.get("/api/marketplace", (req, res) => {
+  res.json([]);
+});
+
+app.get("/api/messages", (req, res) => {
+  res.json([]);
+});
+
+app.get("/api/profile/:username", (req, res) => {
+  res.json({
+    username: req.params.username,
+    role: "user",
+    verified: false,
+  });
+});
+
+/* =========================
+   SOCKET.IO (LOCKED)
 ========================= */
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
   const history = db
     .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
-    .all()
-    .map(row => ({
-      id: row.id,
-      user: row.username,
-      text: row.text,
-      file: row.file ? JSON.parse(row.file) : null,
-      time: new Date(row.created_at).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-      })
-    }));
+    .all();
 
   socket.emit("publicHistory", history);
 
   socket.on("publicMessage", (msg) => {
     db.prepare(`
-      INSERT INTO public_messages (id, username, text, file, created_at)
+      INSERT INTO public_messages
+      (id, username, text, file, created_at)
       VALUES (?, ?, ?, ?, ?)
     `).run(
       msg.id,
@@ -149,21 +259,18 @@ io.on("connection", (socket) => {
   });
 
   socket.on("publicEdit", ({ id, text }) => {
-    db.prepare(`
-      UPDATE public_messages
-      SET text = ?
-      WHERE id = ?
-    `).run(text, id);
+    db.prepare(
+      "UPDATE public_messages SET text = ? WHERE id = ?"
+    ).run(text, id);
 
     io.emit("publicEdit", { id, text });
   });
 });
 
 /* =========================
-   Start server (Render-ready)
+   START SERVER
 ========================= */
 const PORT = process.env.PORT || 4000;
-
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
