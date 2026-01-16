@@ -108,21 +108,33 @@ app.get("/directory", (req, res) => {
       name: "Smith Electrical",
       category: "Electrician",
       location: "George, WC",
-      description: "Qualified electrician with residential and commercial experience."
+      description: "Residential and commercial electrical installations, fault finding, and compliance certificates.",
+      phone: "082 123 4567",
+      email: "info@smithelectrical.co.za",
+      services: ["Wiring", "DB Boards", "COCs", "Fault Finding"],
+      verified: true
     },
     {
       id: "2",
       name: "Coastal Plumbing",
       category: "Plumber",
       location: "Mossel Bay, WC",
-      description: "Emergency and maintenance plumbing services."
+      description: "Emergency plumbing, geyser installations, leak detection, and general maintenance.",
+      phone: "083 555 0198",
+      email: "service@coastalplumbing.co.za",
+      services: ["Geysers", "Leaks", "Drain Cleaning"],
+      verified: true
     },
     {
       id: "3",
       name: "Garden Route Builders",
       category: "Builder",
       location: "Knysna, WC",
-      description: "Small residential builds, renovations, and boundary walls."
+      description: "Small residential builds, renovations, boundary walls, and general construction.",
+      phone: "072 884 2211",
+      email: "projects@gardenroutebuilders.co.za",
+      services: ["Renovations", "Boundary Walls", "Painting"],
+      verified: false
     }
   ]);
 });
