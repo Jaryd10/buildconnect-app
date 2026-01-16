@@ -22,9 +22,8 @@ export default function BusinessCard({ business }) {
       </div>
 
       <p className="business-bio">
-        {business.bio || "Trusted local professional serving the area."}
-      </p>
-
+        {business.description || "Local professional providing reliable services in your area."}
+</p>
       <div className="business-tags">
         {(business.services || []).slice(0, 3).map((service, i) => (
           <span key={i}>{service}</span>
