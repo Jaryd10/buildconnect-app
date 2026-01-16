@@ -99,6 +99,36 @@ app.get("/api/auth/me", (req, res) => {
 });
 
 /* =========================
+   BUSINESS DIRECTORY (SAFE)
+========================= */
+app.get("/directory", (req, res) => {
+  res.json([
+    {
+      id: "1",
+      name: "Smith Electrical",
+      category: "Electrician",
+      location: "George, WC",
+      description: "Qualified electrician with residential and commercial experience."
+    },
+    {
+      id: "2",
+      name: "Coastal Plumbing",
+      category: "Plumber",
+      location: "Mossel Bay, WC",
+      description: "Emergency and maintenance plumbing services."
+    },
+    {
+      id: "3",
+      name: "Garden Route Builders",
+      category: "Builder",
+      location: "Knysna, WC",
+      description: "Small residential builds, renovations, and boundary walls."
+    }
+  ]);
+});
+
+
+/* =========================
    Socket.io (LOCKED)
 ========================= */
 const io = new Server(server, {

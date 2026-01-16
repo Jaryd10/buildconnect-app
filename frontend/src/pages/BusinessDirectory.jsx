@@ -12,7 +12,8 @@ export default function BusinessDirectory() {
 
     async function loadDirectory() {
       try {
-        const res = await api.get("/api/directory");
+        const res = await api.get("/directory");
+
 
         if (isMounted) {
           setBusinesses(res.data);
