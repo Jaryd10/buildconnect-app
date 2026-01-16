@@ -53,15 +53,9 @@ db.prepare(`
   )
 `).run();
 
-
 /* =========================
    MOCK AUTH ROUTES (SAFE)
 ========================= */
-
-/**
- * POST /api/auth/register
- * Mock register — NO DB WRITE
- */
 app.post("/api/auth/register", (req, res) => {
   const { username } = req.body;
 
@@ -69,19 +63,12 @@ app.post("/api/auth/register", (req, res) => {
     return res.status(400).json({ error: "Username required" });
   }
 
-  return res.json({
+  res.json({
     success: true,
-    user: {
-      username,
-      role: "user"
-    }
+    user: { username, role: "user" }
   });
 });
 
-/**
- * POST /api/auth/login
- * Mock login — NO PASSWORD CHECK
- */
 app.post("/api/auth/login", (req, res) => {
   const { username } = req.body;
 
@@ -89,21 +76,14 @@ app.post("/api/auth/login", (req, res) => {
     return res.status(400).json({ error: "Username required" });
   }
 
-  return res.json({
+  res.json({
     success: true,
-    user: {
-      username,
-      role: "user"
-    }
+    user: { username, role: "user" }
   });
 });
 
-/**
- * GET /api/auth/me
- * Mock current user
- */
 app.get("/api/auth/me", (req, res) => {
-  return res.json({
+  res.json({
     username: "testuser",
     role: "user",
     verified: false
@@ -120,7 +100,8 @@ app.get("/directory", (req, res) => {
       name: "Smith Electrical",
       category: "Electrician",
       location: "George, WC",
-      description: "Residential and commercial electrical installations, fault finding, and compliance certificates.",
+      description:
+        "Residential and commercial electrical installations, fault finding, and compliance certificates.",
       phone: "082 123 4567",
       email: "info@smithelectrical.co.za",
       services: ["Wiring", "DB Boards", "COCs", "Fault Finding"],
@@ -131,7 +112,8 @@ app.get("/directory", (req, res) => {
       name: "Coastal Plumbing",
       category: "Plumber",
       location: "Mossel Bay, WC",
-      description: "Emergency plumbing, geyser installations, leak detection, and general maintenance.",
+      description:
+        "Emergency plumbing, geyser installations, leak detection, and general maintenance.",
       phone: "083 555 0198",
       email: "service@coastalplumbing.co.za",
       services: ["Geysers", "Leaks", "Drain Cleaning"],
@@ -142,7 +124,8 @@ app.get("/directory", (req, res) => {
       name: "Garden Route Builders",
       category: "Builder",
       location: "Knysna, WC",
-      description: "Small residential builds, renovations, boundary walls, and general construction.",
+      description:
+        "Small residential builds, renovations, boundary walls, and general construction.",
       phone: "072 884 2211",
       email: "projects@gardenroutebuilders.co.za",
       services: ["Renovations", "Boundary Walls", "Painting"],
@@ -154,11 +137,6 @@ app.get("/directory", (req, res) => {
 /* =========================
    DIRECT MESSAGES (HTTP)
 ========================= */
-
-/**
- * GET /messages?userA=Jay&userB=John
- * Fetch DM history between two users
- */
 app.get("/messages", (req, res) => {
   const { userA, userB } = req.query;
 
@@ -178,10 +156,6 @@ app.get("/messages", (req, res) => {
   res.json(messages);
 });
 
-/**
- * POST /messages
- * Save a new DM
- */
 app.post("/messages", (req, res) => {
   const { id, from, to, text } = req.body;
 
@@ -197,9 +171,8 @@ app.post("/messages", (req, res) => {
   res.json({ success: true });
 });
 
-
 /* =========================
-   Socket.io (LOCKED)
+   Socket.io (LOCKED + DM EXTENSION)
 ========================= */
 const io = new Server(server, {
   cors: {
@@ -208,9 +181,18 @@ const io = new Server(server, {
   }
 });
 
+/* Track connected users for DMs */
+const userSockets = {};
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  /* Register user for direct messages */
+  socket.on("registerUser", (username) => {
+    userSockets[username] = socket.id;
+  });
+
+  /* Public chat history */
   const history = db
     .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
     .all()
@@ -227,6 +209,7 @@ io.on("connection", (socket) => {
 
   socket.emit("publicHistory", history);
 
+  /* Public chat message */
   socket.on("publicMessage", (msg) => {
     db.prepare(`
       INSERT INTO public_messages (id, username, text, file, created_at)
@@ -242,6 +225,7 @@ io.on("connection", (socket) => {
     io.emit("publicMessage", msg);
   });
 
+  /* Public chat edit */
   socket.on("publicEdit", ({ id, text }) => {
     db.prepare(`
       UPDATE public_messages
@@ -250,6 +234,30 @@ io.on("connection", (socket) => {
     `).run(text, id);
 
     io.emit("publicEdit", { id, text });
+  });
+
+  /* Direct message (live) */
+  socket.on("directMessage", (msg) => {
+    const { id, from, to, text } = msg;
+
+    db.prepare(`
+      INSERT INTO direct_messages (id, sender, receiver, text, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(id, from, to, text, Date.now());
+
+    const receiverSocket = userSockets[to];
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("directMessage", msg);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    for (const user in userSockets) {
+      if (userSockets[user] === socket.id) {
+        delete userSockets[user];
+        break;
+      }
+    }
   });
 });
 
