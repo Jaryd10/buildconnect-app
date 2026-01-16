@@ -42,6 +42,18 @@ db.prepare(`
   )
 `).run();
 
+/* Direct messages table (SAFE) */
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS direct_messages (
+    id TEXT PRIMARY KEY,
+    sender TEXT NOT NULL,
+    receiver TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at INTEGER
+  )
+`).run();
+
+
 /* =========================
    MOCK AUTH ROUTES (SAFE)
 ========================= */
@@ -137,6 +149,52 @@ app.get("/directory", (req, res) => {
       verified: false
     }
   ]);
+});
+
+/* =========================
+   DIRECT MESSAGES (HTTP)
+========================= */
+
+/**
+ * GET /messages?userA=Jay&userB=John
+ * Fetch DM history between two users
+ */
+app.get("/messages", (req, res) => {
+  const { userA, userB } = req.query;
+
+  if (!userA || !userB) {
+    return res.status(400).json({ error: "Both users required" });
+  }
+
+  const messages = db.prepare(`
+    SELECT * FROM direct_messages
+    WHERE
+      (sender = ? AND receiver = ?)
+      OR
+      (sender = ? AND receiver = ?)
+    ORDER BY created_at ASC
+  `).all(userA, userB, userB, userA);
+
+  res.json(messages);
+});
+
+/**
+ * POST /messages
+ * Save a new DM
+ */
+app.post("/messages", (req, res) => {
+  const { id, from, to, text } = req.body;
+
+  if (!id || !from || !to || !text) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  db.prepare(`
+    INSERT INTO direct_messages (id, sender, receiver, text, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(id, from, to, text, Date.now());
+
+  res.json({ success: true });
 });
 
 
