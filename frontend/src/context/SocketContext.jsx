@@ -7,12 +7,19 @@ export function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const s = io("http://localhost:4000", {
-      transports: ["websocket"],
-    });
+    const s = io(import.meta.env.VITE_API_URL, {
+  transports: ["polling", "websocket"]
+});
+
 
     s.on("connect", () => {
       console.log("🟢 Socket connected:", s.id);
+
+      const username = localStorage.getItem("username");
+      if (username) {
+        s.emit("registerUser", username);
+      }
+
       setSocket(s);
     });
 
