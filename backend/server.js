@@ -4,6 +4,8 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 const Database = require("better-sqlite3");
 const path = require("path");
+const multer = require("multer");
+const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
@@ -15,6 +17,34 @@ app.use(cors());
 app.use(express.json());
 
 /* =========================
+   Uploads setup (NEW)
+========================= */
+const uploadsDir = path.join(__dirname, "uploads");
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName =
+      Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+});
+
+/* Serve uploaded files */
+app.use("/uploads", express.static(uploadsDir));
+
+/* =========================
    BASIC HTTP ROUTES (LOCKED)
 ========================= */
 app.get("/", (req, res) => {
@@ -23,6 +53,22 @@ app.get("/", (req, res) => {
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+/* =========================
+   FILE UPLOAD ROUTE (NEW)
+========================= */
+app.post("/upload", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  res.json({
+    success: true,
+    url: `/uploads/${req.file.filename}`,
+    originalName: req.file.originalname,
+    mimeType: req.file.mimetype
+  });
 });
 
 /* =========================
@@ -181,18 +227,15 @@ const io = new Server(server, {
   }
 });
 
-/* Track connected users for DMs */
 const userSockets = {};
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  /* Register user for direct messages */
   socket.on("registerUser", (username) => {
     userSockets[username] = socket.id;
   });
 
-  /* Public chat history */
   const history = db
     .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
     .all()
@@ -209,7 +252,6 @@ io.on("connection", (socket) => {
 
   socket.emit("publicHistory", history);
 
-  /* Public chat message */
   socket.on("publicMessage", (msg) => {
     db.prepare(`
       INSERT INTO public_messages (id, username, text, file, created_at)
@@ -225,7 +267,6 @@ io.on("connection", (socket) => {
     io.emit("publicMessage", msg);
   });
 
-  /* Public chat edit */
   socket.on("publicEdit", ({ id, text }) => {
     db.prepare(`
       UPDATE public_messages
@@ -236,7 +277,6 @@ io.on("connection", (socket) => {
     io.emit("publicEdit", { id, text });
   });
 
-  /* Direct message (live) */
   socket.on("directMessage", (msg) => {
     const { id, from, to, text } = msg;
 
