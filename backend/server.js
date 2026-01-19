@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 /* =========================
-   BASIC HTTP ROUTES (LOCKED)
+   BASIC ROUTES
 ========================= */
 app.get("/", (req, res) => {
   res.status(200).send("BuildConnect backend is running ✅");
@@ -26,12 +26,12 @@ app.get("/health", (req, res) => {
 });
 
 /* =========================
-   SQLite setup (Render-safe)
+   SQLite (Render-safe)
 ========================= */
 const dbPath = path.join(__dirname, "buildconnect.db");
 const db = new Database(dbPath);
 
-/* Public chat table (LOCKED) */
+/* Public messages (LOCKED) */
 db.prepare(`
   CREATE TABLE IF NOT EXISTS public_messages (
     id TEXT PRIMARY KEY,
@@ -42,117 +42,43 @@ db.prepare(`
   )
 `).run();
 
-/* Direct messages table (SAFE) */
+/* Direct messages (AUTHORITATIVE) */
 db.prepare(`
   CREATE TABLE IF NOT EXISTS direct_messages (
     id TEXT PRIMARY KEY,
     sender TEXT NOT NULL,
     receiver TEXT NOT NULL,
-    text TEXT NOT NULL,
+    text TEXT,
+    attachment TEXT,
+    reactions TEXT,
     created_at INTEGER
   )
 `).run();
 
 /* =========================
-   MOCK AUTH ROUTES (SAFE)
+   ROUTES
 ========================= */
-app.post("/api/auth/register", (req, res) => {
-  const { username } = req.body;
-  if (!username) return res.status(400).json({ error: "Username required" });
-
-  res.json({ success: true, user: { username, role: "user" } });
-});
-
-app.post("/api/auth/login", (req, res) => {
-  const { username } = req.body;
-  if (!username) return res.status(400).json({ error: "Username required" });
-
-  res.json({ success: true, user: { username, role: "user" } });
-});
-
-app.get("/api/auth/me", (req, res) => {
-  res.json({ username: "testuser", role: "user", verified: false });
-});
-
-/* =========================
-   BUSINESS DIRECTORY (SAFE)
-========================= */
-app.get("/directory", (req, res) => {
-  res.json([
-    {
-      id: "1",
-      name: "Smith Electrical",
-      category: "Electrician",
-      location: "George, WC",
-      description:
-        "Residential and commercial electrical installations, fault finding, and compliance certificates.",
-      phone: "082 123 4567",
-      email: "info@smithelectrical.co.za",
-      services: ["Wiring", "DB Boards", "COCs", "Fault Finding"],
-      verified: true
-    }
-  ]);
-});
-
-/* =========================
-   DIRECT MESSAGES (HTTP)
-   SINGLE SOURCE OF TRUTH
-========================= */
-app.get("/messages", (req, res) => {
-  const { userA, userB } = req.query;
-  if (!userA || !userB) {
-    return res.status(400).json({ error: "Both users required" });
-  }
-
-  const messages = db.prepare(`
-    SELECT *
-    FROM direct_messages
-    WHERE
-      (sender = ? AND receiver = ?)
-      OR
-      (sender = ? AND receiver = ?)
-    ORDER BY created_at ASC
-  `).all(userA, userB, userB, userA);
-
-  res.json(messages);
-});
-
-app.post("/messages", (req, res) => {
-  const { id, from, to, text } = req.body;
-  if (!id || !from || !to || !text) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
-
-  db.prepare(`
-    INSERT INTO direct_messages (id, sender, receiver, text, created_at)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(id, from, to, text, Date.now());
-
-  res.json({ success: true });
-});
+const messagesRouter = require("./routes/messages");
+app.use("/messages", messagesRouter);
 
 /* =========================
    SOCKET.IO
 ========================= */
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-/* Track connected users for DMs */
 const userSockets = {};
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  console.log("Socket connected:", socket.id);
 
   socket.on("registerUser", (username) => {
     if (!username) return;
     userSockets[username] = socket.id;
   });
 
-  /* Public chat history */
+  /* PUBLIC CHAT (LOCKED) */
   const history = db
     .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
     .all()
@@ -185,20 +111,34 @@ io.on("connection", (socket) => {
   });
 
   socket.on("publicEdit", ({ id, text }) => {
-    db.prepare(`
-      UPDATE public_messages SET text = ? WHERE id = ?
-    `).run(text, id);
-
+    db.prepare(`UPDATE public_messages SET text = ? WHERE id = ?`)
+      .run(text, id);
     io.emit("publicEdit", { id, text });
   });
 
-  /* Direct message (LIVE ONLY — NO DB HERE) */
+  /* DIRECT MESSAGE (PERSIST + EMIT) */
   socket.on("directMessage", (msg) => {
-    const receiverSocket = userSockets[msg.to];
-    const senderSocket = userSockets[msg.from];
+    const { id, from, to, text, attachment, reactions } = msg;
 
-    if (receiverSocket) io.to(receiverSocket).emit("directMessage", msg);
+    db.prepare(`
+      INSERT INTO direct_messages
+      (id, sender, receiver, text, attachment, reactions, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      from,
+      to,
+      text || "",
+      attachment ? JSON.stringify(attachment) : null,
+      JSON.stringify(reactions || {}),
+      Date.now()
+    );
+
+    const senderSocket = userSockets[from];
+    const receiverSocket = userSockets[to];
+
     if (senderSocket) io.to(senderSocket).emit("directMessage", msg);
+    if (receiverSocket) io.to(receiverSocket).emit("directMessage", msg);
   });
 
   socket.on("disconnect", () => {
@@ -212,7 +152,7 @@ io.on("connection", (socket) => {
 });
 
 /* =========================
-   Start server (Render-ready)
+   START SERVER
 ========================= */
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
