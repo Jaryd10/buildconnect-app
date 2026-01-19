@@ -93,3 +93,39 @@
   color: white;
   cursor: pointer;
 }
+
+/* FORCE MOBILE CHAT TO FILL VIEWPORT */
+@media (max-width: 768px) {
+  .dm-page {
+    position: fixed;
+    top: var(--app-header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: calc(100dvh - var(--app-header-height));
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+  }
+
+  .dm-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .dm-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+  }
+
+  .dm-input {
+    position: sticky;
+    bottom: 0;
+    flex-shrink: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

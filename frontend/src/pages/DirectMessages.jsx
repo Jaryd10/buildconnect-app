@@ -1,143 +1,120 @@
-import { useSearchParams } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useSocket } from "../context/SocketContext";
-import api from "../api/api";
+import { useUser } from "../context/UserContext";
+import EmojiPicker from "emoji-picker-react";
 import "./DirectMessages.css";
 
 export default function DirectMessages() {
-  const [searchParams] = useSearchParams();
-  const preselectUser = searchParams.get("user");
+  const navigate = useNavigate();
+  const { id } = useParams(); // conversation/user id
+  const { socket } = useSocket(); // ✅ CORRECT socket usage
+  const { user } = useUser();
 
-  const { socket } = useSocket();
-
-  const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState("");
+  const [text, setText] = useState("");
+  const [showEmoji, setShowEmoji] = useState(false);
+
   const bottomRef = useRef(null);
 
-  const myName = localStorage.getItem("username") || "Me";
-
-  /* Preselect user from URL */
+  /* --- Load messages (mock / existing backend) --- */
   useEffect(() => {
-    if (preselectUser) setSelectedUser(preselectUser);
-  }, [preselectUser]);
+    // keep safe fallback
+    setMessages([]);
+  }, [id]);
 
-  /* Load DM history */
-  useEffect(() => {
-    if (!selectedUser) return;
-
-    api
-      .get("/messages", {
-        params: { userA: myName, userB: selectedUser }
-      })
-      .then((res) => {
-        if (Array.isArray(res.data)) {
-          setMessages(res.data);
-        }
-      })
-      .catch(() => {});
-  }, [selectedUser, myName]);
-
-  /* Receive live DM */
+  /* --- Socket listeners --- */
   useEffect(() => {
     if (!socket) return;
 
-    const handler = (msg) => {
-      if (
-        (msg.from === myName && msg.to === selectedUser) ||
-        (msg.from === selectedUser && msg.to === myName)
-      ) {
-        setMessages((prev) => [...prev, msg]);
-      }
+    const handleIncoming = (msg) => {
+      setMessages((prev) => [...prev, msg]);
     };
 
-    socket.on("directMessage", handler);
-    return () => socket.off("directMessage", handler);
-  }, [socket, selectedUser, myName]);
+    socket.on("direct_message", handleIncoming);
 
-  /* Auto-scroll */
+    return () => {
+      socket.off("direct_message", handleIncoming);
+    };
+  }, [socket]);
+
+  /* --- Auto scroll --- */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /* --- Send message --- */
   const sendMessage = () => {
-  const text = message.trim();
-  if (!text || !selectedUser || !socket) return;
+    if (!text.trim() || !socket) return;
 
-  const msg = {
-    id: crypto.randomUUID(),
-    from: myName,
-    to: selectedUser,
-    text
+    const msg = {
+      from: user.id,
+      to: id,
+      text,
+      timestamp: Date.now(),
+    };
+
+    socket.emit("direct_message", msg);
+    setMessages((prev) => [...prev, msg]);
+    setText("");
+    setShowEmoji(false);
   };
 
-  // 1️⃣ Send to backend
-  socket.emit("directMessage", msg);
-
-  // 2️⃣ IMMEDIATELY show it in UI (this was missing)
-  setMessages(prev => [...prev, msg]);
-
-  setMessage("");
-};
-
-
   return (
-    <div className="dm-container">
-      {/* Sidebar */}
-      <aside className="dm-sidebar">
-        <h3>Messages</h3>
-        {["John", "Jay"].map((user) => (
-          <button
-            key={user}
-            className={`dm-user ${selectedUser === user ? "active" : ""}`}
-            onClick={() => setSelectedUser(user)}
+    <div className="dm-page">
+      {/* Header */}
+      <div className="dm-header">
+        <button className="dm-back" onClick={() => navigate("/public")}>
+          ←
+        </button>
+        <span className="dm-name">John</span>
+      </div>
+
+      {/* Messages */}
+      <div className="dm-messages">
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            className={`dm-bubble ${
+              m.from === user.id ? "sent" : "received"
+            }`}
           >
-            {user}
-          </button>
-        ))}
-      </aside>
-
-      {/* Chat */}
-      <section className="dm-chat">
-        {!selectedUser ? (
-          <div className="dm-empty">
-            Select a conversation to start chatting
+            {m.text}
           </div>
-        ) : (
-          <>
-            <header className="dm-header">
-              Conversation with {selectedUser}
-            </header>
+        ))}
+        <div ref={bottomRef} />
+      </div>
 
-            <div className="dm-messages">
-              {messages.length === 0 && (
-                <div className="dm-no-messages">No messages yet</div>
-              )}
+      {/* Input */}
+      <div className="dm-input-bar">
+        <button
+          className="dm-emoji-btn"
+          onClick={() => setShowEmoji((v) => !v)}
+        >
+          😊
+        </button>
 
-              {messages.map((m, i) => (
-                <div
-                  key={i}
-                  className={`dm-bubble ${
-                    m.from === myName ? "me" : "them"
-                  }`}
-                >
-                  {m.text}
-                </div>
-              ))}
-              <div ref={bottomRef} />
-            </div>
+        <input
+          className="dm-input"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Type a message..."
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+        />
 
-            <div className="dm-input">
-              <input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type a message…"
-              />
-              <button onClick={sendMessage}>Send</button>
-            </div>
-          </>
+        <button className="dm-send-btn" onClick={sendMessage}>
+          Send
+        </button>
+
+        {showEmoji && (
+          <div className="dm-emoji-picker">
+            <EmojiPicker
+              theme="dark"
+              onEmojiClick={(e) => setText((t) => t + e.emoji)}
+            />
+          </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }

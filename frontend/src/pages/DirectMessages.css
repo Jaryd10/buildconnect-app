@@ -1,200 +1,131 @@
-/* ===============================
-   BASE (LIGHT MODE DEFAULT)
-   =============================== */
-
-.dm-container {
-  display: flex;
-  height: calc(100vh - 120px);
-  gap: 16px;
-  color: #111827;
-}
-
-/* Sidebar */
-.dm-sidebar {
-  width: 220px;
-  background: rgba(255, 255, 255, 0.85); /* FIX: stronger panel */
-  border-radius: 16px;
-  padding: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.dm-sidebar h3 {
-  margin-bottom: 12px;
-  color: #111827;
-  font-weight: 600;
-}
-
-.dm-user {
-  width: 100%;
-  padding: 10px 14px;
-  margin-bottom: 8px;
-  border-radius: 12px;
-  background: transparent;
-  border: none;
-  color: #1f2937;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: left;
-}
-
-.dm-user:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.dm-user.active {
-  background: rgba(59, 130, 246, 0.25);
-  color: #111827;
-  font-weight: 600;
-}
-
-/* Chat */
-.dm-chat {
-  flex: 1;
+/* Page */
+.dm-page {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.85); /* FIX */
-  border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+/* Header */
 .dm-header {
-  padding: 16px;
-  font-weight: 600;
-  color: #111827;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
 }
 
+.dm-back {
+  font-size: 18px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+}
+
+.dm-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Messages */
 .dm-messages {
   flex: 1;
   padding: 16px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.dm-no-messages {
-  text-align: center;
-  margin-top: 20px;
-  color: #6b7280;
+  gap: 8px;
 }
 
 /* Message bubbles */
 .dm-bubble {
-  max-width: 65%;
+  max-width: 70%;
   padding: 10px 14px;
   border-radius: 18px;
-  line-height: 1.45;
-  font-size: 0.95rem;
+  font-size: 14px;
 }
 
-.dm-bubble.me {
+.dm-bubble.sent {
   align-self: flex-end;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: #2563eb;
   color: #ffffff;
-  border-bottom-right-radius: 6px;
 }
 
-.dm-bubble.them {
+.dm-bubble.received {
   align-self: flex-start;
-  background: #e5e7eb;
-  color: #111827;
-  border-bottom-left-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-primary);
 }
 
-/* Input */
-.dm-input {
+/* Input bar */
+.dm-input-bar {
+  position: relative;
   display: flex;
+  align-items: center;
   gap: 8px;
   padding: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
 }
 
-.dm-input input {
+/* INPUT — HARD LOCKED (THIS IS THE FIX) */
+.dm-input {
   flex: 1;
-  padding: 10px 14px;
+  height: 42px;
+  border-radius: 999px;
+  padding: 0 14px;
+
+  background: #ffffff;
+  color: #000000;
+  caret-color: #000000;
+
+  border: 1px solid #d1d5db;
+}
+
+/* Dark mode override ONLY for DM input */
+body.dark .dm-input {
+  background: #1f2937;
+  color: #ffffff;
+  caret-color: #ffffff;
+  border: 1px solid #374151;
+}
+
+.dm-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Buttons */
+.dm-send-btn {
+  height: 42px;
+  padding: 0 18px;
   border-radius: 999px;
   border: none;
-  outline: none;
-  background: #ffffff;
-  color: #111827;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
 }
 
-.dm-input input::placeholder {
-  color: #6b7280;
-}
-
-.dm-input button {
-  padding: 10px 18px;
-  border-radius: 999px;
+.dm-emoji-btn {
+  font-size: 18px;
+  background: none;
   border: none;
   cursor: pointer;
-  background: #3b82f6;
-  color: #ffffff;
-  font-weight: 600;
 }
 
-.dm-input button:hover {
-  background: #2563eb;
+/* Emoji picker */
+.dm-emoji-picker {
+  position: absolute;
+  bottom: 60px;
+  left: 12px;
+  z-index: 1000;
 }
 
-.dm-empty {
-  margin: auto;
-  color: #6b7280;
+/* FORCE header visibility in dark mode */
+body.dark .dm-header {
+  background: rgba(0, 0, 0, 0.35);
 }
 
-/* ===============================
-   DARK MODE OVERRIDES
-   =============================== */
-
-[data-theme="dark"] .dm-sidebar {
-  background: rgba(17, 24, 39, 0.85); /* FIX: solid dark panel */
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-}
-
-[data-theme="dark"] .dm-sidebar h3 {
-  color: #f9fafb;
-}
-
-[data-theme="dark"] .dm-user {
-  color: #e5e7eb;
-}
-
-[data-theme="dark"] .dm-user.active {
-  background: rgba(59, 130, 246, 0.45);
-  color: #ffffff;
-}
-
-[data-theme="dark"] .dm-chat {
-  background: rgba(17, 24, 39, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-}
-
-[data-theme="dark"] .dm-header {
-  color: #f9fafb;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .dm-bubble.them {
-  background: rgba(255, 255, 255, 0.18);
-  color: #f3f4f6;
-}
-
-[data-theme="dark"] .dm-input {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .dm-input input {
-  background: rgba(255, 255, 255, 0.15);
-  color: #f9fafb;
-}
-
-[data-theme="dark"] .dm-input input::placeholder {
-  color: #9ca3af;
-}
-
-[data-theme="dark"] .dm-empty {
-  color: #9ca3af;
+body.dark .dm-back,
+body.dark .dm-name {
+  color: #ffffff !important;
 }
