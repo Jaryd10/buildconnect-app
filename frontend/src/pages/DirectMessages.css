@@ -129,3 +129,139 @@ body.dark .dm-back,
 body.dark .dm-name {
   color: #ffffff !important;
 }
+
+/* Edit button */
+.dm-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 6px;
+  opacity: 0.7;
+}
+
+.dm-edit-btn:hover {
+  opacity: 1;
+}
+
+/* Edit input */
+.dm-edit-input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+/* Edit actions */
+.dm-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dm-edit-actions button {
+  background: #2563eb;
+  border: none;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* Edited label */
+.dm-edited-label {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-top: 4px;
+}
+
+/* Reactions */
+.dm-reactions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.dm-reaction {
+  background: rgba(0,0,0,0.08);
+  border: none;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.dm-reaction.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* Reaction bar (quick add) */
+.dm-reaction-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.dm-reaction-bar button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.dm-reaction-bar button:hover {
+  opacity: 1;
+}
+
+/* ============================= */
+/* DM ATTACHMENT SIZE CONTROL */
+/* ============================= */
+
+/* Images & videos inside bubbles */
+.dm-media {
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: 12px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Prevent videos from going full-width */
+.dm-bubble .dm-media {
+  margin-top: 6px;
+}
+
+/* PDF preview */
+.dm-pdf {
+  width: 100%;
+  max-width: 320px;
+  height: 220px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-top: 6px;
+}
+
+/* Attachment preview (before sending) */
+.dm-attachment-preview {
+  max-width: 360px;
+  margin: 8px auto;
+}
+
+.dm-attachment-preview .dm-media,
+.dm-attachment-preview .dm-pdf {
+  max-height: 200px;
+}
+
+/* Mobile safety */
+@media (max-width: 640px) {
+  .dm-media {
+    max-height: 200px;
+  }
+
+  .dm-pdf {
+    height: 180px;
+  }
+}
