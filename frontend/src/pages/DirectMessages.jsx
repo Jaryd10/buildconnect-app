@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSocket } from "../context/SocketContext";
 import { useUser } from "../context/UserContext";
+import api from "../api/api";
 import EmojiPicker from "emoji-picker-react";
 import "./DirectMessages.css";
 
@@ -10,7 +11,7 @@ const REACTIONS = ["👍", "❤️", "😂", "😮", "😢"];
 
 export default function DirectMessages() {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams(); // other user's username
   const { socket } = useSocket();
   const { user } = useUser();
 
@@ -25,20 +26,45 @@ export default function DirectMessages() {
   const fileInputRef = useRef(null);
   const bottomRef = useRef(null);
 
+  /* -----------------------------
+     STEP 2: Load message history
+  ------------------------------ */
   useEffect(() => {
-    setMessages([]);
-  }, [id]);
+    if (!user?.username || !id) return;
 
+    api
+      .get("/messages", {
+        params: {
+          userA: user.username,
+          userB: id,
+        },
+      })
+      .then((res) => {
+        setMessages(res.data || []);
+      })
+      .catch((err) => {
+        console.error("Failed to load DM history", err);
+      });
+  }, [user?.username, id]);
+
+  /* -----------------------------
+     STEP 1: Live socket messages
+  ------------------------------ */
   useEffect(() => {
     if (!socket) return;
 
     const handleIncoming = (msg) => {
-      setMessages((prev) => [...prev, msg]);
+      if (
+        (msg.from === user.username && msg.to === id) ||
+        (msg.from === id && msg.to === user.username)
+      ) {
+        setMessages((prev) => [...prev, msg]);
+      }
     };
 
     socket.on("direct_message", handleIncoming);
     return () => socket.off("direct_message", handleIncoming);
-  }, [socket]);
+  }, [socket, user?.username, id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -57,7 +83,7 @@ export default function DirectMessages() {
       url,
       type: file.type,
       name: file.name,
-      size: Math.round(file.size / 1024) + " KB"
+      size: Math.round(file.size / 1024) + " KB",
     });
   };
 
@@ -67,12 +93,12 @@ export default function DirectMessages() {
     if (!socket || (!text.trim() && !attachment)) return;
 
     const msg = {
-      from: user.id,
+      from: user.username,
       to: id,
       text,
       attachment,
       reactions: {},
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     socket.emit("direct_message", msg);
@@ -115,11 +141,11 @@ export default function DirectMessages() {
         const reactions = { ...(m.reactions || {}) };
         const users = reactions[emoji] || [];
 
-        if (users.includes(user.id)) {
-          reactions[emoji] = users.filter((u) => u !== user.id);
+        if (users.includes(user.username)) {
+          reactions[emoji] = users.filter((u) => u !== user.username);
           if (reactions[emoji].length === 0) delete reactions[emoji];
         } else {
-          reactions[emoji] = [...users, user.id];
+          reactions[emoji] = [...users, user.username];
         }
 
         return { ...m, reactions };
@@ -160,7 +186,7 @@ export default function DirectMessages() {
           <button
             key={emoji}
             className={`dm-reaction ${
-              users.includes(user.id) ? "active" : ""
+              users.includes(user.username) ? "active" : ""
             }`}
             onClick={() => toggleReaction(index, emoji)}
           >
@@ -178,13 +204,13 @@ export default function DirectMessages() {
         <button className="dm-back" onClick={() => navigate("/public")}>
           ←
         </button>
-        <span className="dm-name">John</span>
+        <span className="dm-name">{id}</span>
       </div>
 
       {/* Messages */}
       <div className="dm-messages">
         {messages.map((m, i) => {
-          const isOwn = m.from === user.id;
+          const isOwn = m.from === user.username;
           const isEditing = editingIndex === i;
 
           return (

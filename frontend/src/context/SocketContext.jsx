@@ -8,16 +8,20 @@ export function SocketProvider({ children }) {
 
   useEffect(() => {
     const s = io(import.meta.env.VITE_API_URL, {
-  transports: ["polling", "websocket"]
-});
-
+      transports: ["websocket", "polling"],
+    });
 
     s.on("connect", () => {
       console.log("🟢 Socket connected:", s.id);
 
+      // IMPORTANT: register user for direct messages
       const username = localStorage.getItem("username");
+
       if (username) {
+        console.log("🧩 Registering socket for user:", username);
         s.emit("registerUser", username);
+      } else {
+        console.warn("⚠️ No username found in localStorage");
       }
 
       setSocket(s);
