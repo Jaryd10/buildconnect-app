@@ -58,36 +58,20 @@ db.prepare(`
 ========================= */
 app.post("/api/auth/register", (req, res) => {
   const { username } = req.body;
+  if (!username) return res.status(400).json({ error: "Username required" });
 
-  if (!username) {
-    return res.status(400).json({ error: "Username required" });
-  }
-
-  res.json({
-    success: true,
-    user: { username, role: "user" }
-  });
+  res.json({ success: true, user: { username, role: "user" } });
 });
 
 app.post("/api/auth/login", (req, res) => {
   const { username } = req.body;
+  if (!username) return res.status(400).json({ error: "Username required" });
 
-  if (!username) {
-    return res.status(400).json({ error: "Username required" });
-  }
-
-  res.json({
-    success: true,
-    user: { username, role: "user" }
-  });
+  res.json({ success: true, user: { username, role: "user" } });
 });
 
 app.get("/api/auth/me", (req, res) => {
-  res.json({
-    username: "testuser",
-    role: "user",
-    verified: false
-  });
+  res.json({ username: "testuser", role: "user", verified: false });
 });
 
 /* =========================
@@ -106,46 +90,23 @@ app.get("/directory", (req, res) => {
       email: "info@smithelectrical.co.za",
       services: ["Wiring", "DB Boards", "COCs", "Fault Finding"],
       verified: true
-    },
-    {
-      id: "2",
-      name: "Coastal Plumbing",
-      category: "Plumber",
-      location: "Mossel Bay, WC",
-      description:
-        "Emergency plumbing, geyser installations, leak detection, and general maintenance.",
-      phone: "083 555 0198",
-      email: "service@coastalplumbing.co.za",
-      services: ["Geysers", "Leaks", "Drain Cleaning"],
-      verified: true
-    },
-    {
-      id: "3",
-      name: "Garden Route Builders",
-      category: "Builder",
-      location: "Knysna, WC",
-      description:
-        "Small residential builds, renovations, boundary walls, and general construction.",
-      phone: "072 884 2211",
-      email: "projects@gardenroutebuilders.co.za",
-      services: ["Renovations", "Boundary Walls", "Painting"],
-      verified: false
     }
   ]);
 });
 
 /* =========================
    DIRECT MESSAGES (HTTP)
+   SINGLE SOURCE OF TRUTH
 ========================= */
 app.get("/messages", (req, res) => {
   const { userA, userB } = req.query;
-
   if (!userA || !userB) {
     return res.status(400).json({ error: "Both users required" });
   }
 
   const messages = db.prepare(`
-    SELECT * FROM direct_messages
+    SELECT *
+    FROM direct_messages
     WHERE
       (sender = ? AND receiver = ?)
       OR
@@ -158,7 +119,6 @@ app.get("/messages", (req, res) => {
 
 app.post("/messages", (req, res) => {
   const { id, from, to, text } = req.body;
-
   if (!id || !from || !to || !text) {
     return res.status(400).json({ error: "Missing fields" });
   }
@@ -172,7 +132,7 @@ app.post("/messages", (req, res) => {
 });
 
 /* =========================
-   Socket.io (LOCKED + DM EXTENSION)
+   SOCKET.IO
 ========================= */
 const io = new Server(server, {
   cors: {
@@ -187,8 +147,8 @@ const userSockets = {};
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  /* Register user for direct messages */
   socket.on("registerUser", (username) => {
+    if (!username) return;
     userSockets[username] = socket.id;
   });
 
@@ -209,7 +169,6 @@ io.on("connection", (socket) => {
 
   socket.emit("publicHistory", history);
 
-  /* Public chat message */
   socket.on("publicMessage", (msg) => {
     db.prepare(`
       INSERT INTO public_messages (id, username, text, file, created_at)
@@ -225,30 +184,21 @@ io.on("connection", (socket) => {
     io.emit("publicMessage", msg);
   });
 
-  /* Public chat edit */
   socket.on("publicEdit", ({ id, text }) => {
     db.prepare(`
-      UPDATE public_messages
-      SET text = ?
-      WHERE id = ?
+      UPDATE public_messages SET text = ? WHERE id = ?
     `).run(text, id);
 
     io.emit("publicEdit", { id, text });
   });
 
-  /* Direct message (live) */
+  /* Direct message (LIVE ONLY — NO DB HERE) */
   socket.on("directMessage", (msg) => {
-    const { id, from, to, text } = msg;
+    const receiverSocket = userSockets[msg.to];
+    const senderSocket = userSockets[msg.from];
 
-    db.prepare(`
-      INSERT INTO direct_messages (id, sender, receiver, text, created_at)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(id, from, to, text, Date.now());
-
-    const receiverSocket = userSockets[to];
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("directMessage", msg);
-    }
+    if (receiverSocket) io.to(receiverSocket).emit("directMessage", msg);
+    if (senderSocket) io.to(senderSocket).emit("directMessage", msg);
   });
 
   socket.on("disconnect", () => {
@@ -265,7 +215,6 @@ io.on("connection", (socket) => {
    Start server (Render-ready)
 ========================= */
 const PORT = process.env.PORT || 4000;
-
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

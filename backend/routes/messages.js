@@ -1,47 +1,79 @@
-const express = require("express");
+import express from "express";
+import db from "../db.js";
+
 const router = express.Router();
 
-/*
-  v1 message store (username-based, permissive)
-*/
-const messages = [];
-
 /**
- * GET /messages?userA=&userB=
+ * GET /messages
+ * Load direct message history between two users
  */
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   const { userA, userB } = req.query;
 
   if (!userA || !userB) {
-    return res.json([]);
+    return res.status(400).json({ error: "Missing users" });
   }
 
-  const convo = messages.filter(
-    (m) =>
-      (m.from === userA && m.to === userB) ||
-      (m.from === userB && m.to === userA)
-  );
+  try {
+    const rows = await db.all(
+      `
+      SELECT
+        sender AS "from",
+        receiver AS "to",
+        text,
+        attachment,
+        reactions,
+        created_at AS timestamp
+      FROM direct_messages
+      WHERE (sender = ? AND receiver = ?)
+         OR (sender = ? AND receiver = ?)
+      ORDER BY created_at ASC
+      `,
+      [userA, userB, userB, userA]
+    );
 
-  res.json(convo);
+    const parsed = rows.map((r) => ({
+      ...r,
+      attachment: r.attachment ? JSON.parse(r.attachment) : null,
+      reactions: r.reactions ? JSON.parse(r.reactions) : {}
+    }));
+
+    res.json(parsed);
+  } catch (err) {
+    console.error("Failed to load DM history", err);
+    res.status(500).json({ error: "Failed to load messages" });
+  }
 });
 
 /**
  * POST /messages
- * Body: { from, to, text }
- * v1: permissive – no hard validation
+ * Persist a direct message (HTTP fallback)
  */
-router.post("/", (req, res) => {
-  const { from, to, text } = req.body || {};
+router.post("/", async (req, res) => {
+  const { from, to, text, attachment, reactions, timestamp } = req.body;
 
-  const message = {
-    from: from || "Unknown",
-    to: to || "Unknown",
-    text: String(text || ""),
-    timestamp: Date.now(),
-  };
+  try {
+    await db.run(
+      `
+      INSERT INTO direct_messages
+      (sender, receiver, text, attachment, reactions, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      [
+        from,
+        to,
+        text || "",
+        attachment ? JSON.stringify(attachment) : null,
+        JSON.stringify(reactions || {}),
+        timestamp || Date.now()
+      ]
+    );
 
-  messages.push(message);
-  res.json(message);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Failed to persist DM", err);
+    res.status(500).json({ error: "Failed to save message" });
+  }
 });
 
-module.exports = router;
+export default router;
