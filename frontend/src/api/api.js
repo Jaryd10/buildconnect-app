@@ -6,7 +6,7 @@ import axios from "axios";
  * Base URL locked and verified
  */
 const api = axios.create({
-  baseURL: "https://buildconnect-app.onrender.com",
+ baseURL: import.meta.env.VITE_API_URL,
   headers: {
     "Content-Type": "application/json",
   },

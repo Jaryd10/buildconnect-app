@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./../styles/layout.css";
+import logo from "../assets/buildconnect-logo.png";
 
 export default function AppHeader({ theme, setTheme }) {
   const navigate = useNavigate();
@@ -22,11 +23,12 @@ export default function AppHeader({ theme, setTheme }) {
           style={{ cursor: "pointer" }}
           onClick={() => navigate("/")}
         >
-          <img
-            src="/src/assets/buildconnect-logo.png"
-            alt="BuildConnect Logo"
-            className="app-logo"
+         <img
+          src={logo}
+          alt="BuildConnect Logo"
+          className="app-logo"
           />
+
           <span className="app-title">BuildConnect</span>
         </div>
 
