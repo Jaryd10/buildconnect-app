@@ -31,6 +31,9 @@ export default function PublicChat() {
 
   const bottomRef = useRef(null);
 
+  /* =========================
+     Socket listeners
+  ========================= */
   useEffect(() => {
     if (!socket) return;
 
@@ -65,6 +68,9 @@ export default function PublicChat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /* =========================
+     Message send
+  ========================= */
   const sendMessage = () => {
     if (!socket) return;
     if (!message.trim() && !file) return;
@@ -107,6 +113,30 @@ export default function PublicChat() {
     setShowEmojis(false);
   };
 
+  /* =========================
+     Edit handlers
+  ========================= */
+  const startEdit = (id, currentText) => {
+    setEditingId(id);
+    setEditText(currentText || "");
+  };
+
+  const saveEdit = (id) => {
+    if (!socket || !editText.trim()) return;
+
+    socket.emit("publicEdit", { id, text: editText });
+    setEditingId(null);
+    setEditText("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText("");
+  };
+
+  /* =========================
+     Render
+  ========================= */
   return (
     <div className="chat-container">
       <div className="messages">
@@ -128,15 +158,31 @@ export default function PublicChat() {
 
               {m.user === user?.username && hoveredId === m.id && (
                 <span className="message-actions">
-                  <span onClick={() => setEditingId(m.id)}>✏️</span>
+                  <span onClick={() => startEdit(m.id, m.text)}>✏️</span>
                 </span>
               )}
             </div>
 
-            {m.text && (
-              <div className="message-text">
-                {m.text} {m.edited && <em>(edited)</em>}
+            {editingId === m.id ? (
+              <div className="edit-box">
+                <input
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveEdit(m.id);
+                    if (e.key === "Escape") cancelEdit();
+                  }}
+                  autoFocus
+                />
+                <button onClick={() => saveEdit(m.id)}>Save</button>
+                <button onClick={cancelEdit}>Cancel</button>
               </div>
+            ) : (
+              m.text && (
+                <div className="message-text">
+                  {m.text} {m.edited && <em>(edited)</em>}
+                </div>
+              )
             )}
 
             {m.file &&
