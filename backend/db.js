@@ -1,17 +1,11 @@
-const Database = require("better-sqlite3");
-const path = require("path");
+const { Pool } = require("pg");
 
-const dbPath = path.join(__dirname, "buildconnect.db");
-const db = new Database(dbPath);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
 
-// Create tables if they don’t exist
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS public_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
-    message TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`).run();
+module.exports = pool;
 
-module.exports = db;
