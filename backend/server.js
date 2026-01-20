@@ -8,37 +8,25 @@ const messagesRoutes = require("./routes/messages");
 const app = express();
 const server = http.createServer(app);
 
-/* =====================
-   Core middleware
-===================== */
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-}));
+app.use(cors());
 app.use(express.json());
 
-/* =====================
-   Health check
-===================== */
 app.get("/", (req, res) => {
   res.json({ status: "BuildConnect backend running ✅" });
 });
 
-/* =====================
-   Messages API
-===================== */
-app.use("/messages", messagesRoutes);
+/**
+ * 🔥 API PREFIX — THIS FIXES EVERYTHING
+ */
+app.use("/api/messages", messagesRoutes);
 
-/* =====================
-   404 JSON fallback (IMPORTANT)
-===================== */
+/**
+ * JSON-only 404
+ */
 app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
+  res.status(404).json({ error: "API route not found" });
 });
 
-/* =====================
-   Start server
-===================== */
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
