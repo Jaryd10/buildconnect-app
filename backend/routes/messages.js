@@ -7,7 +7,7 @@ router.post("/direct", async (req, res) => {
   const { from, to, text } = req.body;
 
   if (!from || !to || !text) {
-    return res.status(400).json({ error: "Both users and text required" });
+    return res.status(400).json({ error: "from, to, and text required" });
   }
 
   try {
@@ -20,31 +20,32 @@ router.post("/direct", async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("DB error:", err);
+    console.error("DM insert error:", err);
     res.status(500).json({ error: "Database error" });
   }
 });
 
-// GET /api/messages/direct?from=Jay&to=Mike
+// GET /api/messages/direct?user1=Jay&user2=Mike
 router.get("/direct", async (req, res) => {
-  const { from, to } = req.query;
+  const { user1, user2 } = req.query;
 
-  if (!from || !to) {
+  if (!user1 || !user2) {
     return res.status(400).json({ error: "Both users required" });
   }
 
   try {
     const result = await db.query(
-      `SELECT * FROM direct_messages
+      `SELECT *
+       FROM direct_messages
        WHERE (sender=$1 AND receiver=$2)
           OR (sender=$2 AND receiver=$1)
        ORDER BY created_at ASC`,
-      [from, to]
+      [user1, user2]
     );
 
     res.json(result.rows);
   } catch (err) {
-    console.error("DB error:", err);
+    console.error("DM fetch error:", err);
     res.status(500).json({ error: "Database error" });
   }
 });
