@@ -11,20 +11,30 @@ const server = http.createServer(app);
 /* =====================
    Core middleware
 ===================== */
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+}));
 app.use(express.json());
 
 /* =====================
    Health check
 ===================== */
 app.get("/", (req, res) => {
-  res.send("BuildConnect backend is running ✅");
+  res.json({ status: "BuildConnect backend running ✅" });
 });
 
 /* =====================
-   Routes
+   Messages API
 ===================== */
 app.use("/messages", messagesRoutes);
+
+/* =====================
+   404 JSON fallback (IMPORTANT)
+===================== */
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
 
 /* =====================
    Start server
