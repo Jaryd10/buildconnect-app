@@ -1,111 +1,57 @@
-// backend/routes/messages.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-/* =========================
-   POST /messages/public
-========================= */
-router.post("/public", async (req, res) => {
-  const { from, text } = req.body;
-
-  if (!from || !text) {
-    return res.status(400).json({ error: "from and text required" });
-  }
-
-  try {
-    const result = await db.query(
-      `
-      INSERT INTO messages (from_user, to_user, text, is_direct)
-      VALUES ($1, NULL, $2, false)
-      RETURNING *
-      `,
-      [from, text]
-    );
-
-    res.json({ success: true, message: result.rows[0] });
-  } catch (err) {
-    console.error("PUBLIC MESSAGE ERROR:", err);
-    res.status(500).json({ error: "Failed to send public message" });
-  }
-});
-
-/* =========================
-   POST /messages/direct
-========================= */
+/**
+ * POST /messages/direct
+ * Body: { from, to, text }
+ */
 router.post("/direct", async (req, res) => {
   const { from, to, text } = req.body;
 
   if (!from || !to || !text) {
-    return res.status(400).json({ error: "Both users required" });
+    return res.status(400).json({ error: "from, to and text required" });
   }
 
   try {
     const result = await db.query(
-      `
-      INSERT INTO messages (from_user, to_user, text, is_direct)
-      VALUES ($1, $2, $3, true)
-      RETURNING *
-      `,
+      `INSERT INTO direct_messages (sender, receiver, message)
+       VALUES ($1, $2, $3)
+       RETURNING id, sender, receiver, message, created_at`,
       [from, to, text]
     );
 
-    res.json({ success: true, message: result.rows[0] });
+    res.json(result.rows[0]);
   } catch (err) {
-    console.error("DIRECT MESSAGE ERROR:", err);
-    res.status(500).json({ error: "Failed to send direct message" });
+    console.error("DM INSERT ERROR:", err);
+    res.status(500).json({ error: "Failed to save message" });
   }
 });
 
-/* =========================
-   GET /messages/public
-========================= */
-router.get("/public", async (req, res) => {
-  try {
-    const result = await db.query(
-      `
-      SELECT * FROM messages
-      WHERE is_direct = false
-      ORDER BY created_at ASC
-      `
-    );
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("FETCH PUBLIC ERROR:", err);
-    res.status(500).json({ error: "Failed to load public messages" });
-  }
-});
-
-/* =========================
-   GET /messages/direct
-========================= */
+/**
+ * GET /messages/direct?userA=&userB=
+ */
 router.get("/direct", async (req, res) => {
-  const { user1, user2 } = req.query;
+  const { userA, userB } = req.query;
 
-  if (!user1 || !user2) {
+  if (!userA || !userB) {
     return res.status(400).json({ error: "Both users required" });
   }
 
   try {
     const result = await db.query(
-      `
-      SELECT * FROM messages
-      WHERE is_direct = true
-        AND (
-          (from_user = $1 AND to_user = $2)
-          OR
-          (from_user = $2 AND to_user = $1)
-        )
-      ORDER BY created_at ASC
-      `,
-      [user1, user2]
+      `SELECT id, sender, receiver, message, created_at
+       FROM direct_messages
+       WHERE (sender = $1 AND receiver = $2)
+          OR (sender = $2 AND receiver = $1)
+       ORDER BY created_at ASC`,
+      [userA, userB]
     );
 
     res.json(result.rows);
   } catch (err) {
-    console.error("FETCH DIRECT ERROR:", err);
-    res.status(500).json({ error: "Failed to load direct messages" });
+    console.error("DM FETCH ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch messages" });
   }
 });
 
