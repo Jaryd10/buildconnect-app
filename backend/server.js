@@ -8,20 +8,27 @@ const messagesRouter = require("./routes/messages");
 const app = express();
 const server = http.createServer(app);
 
+/* -------------------- middleware -------------------- */
 app.use(cors());
 app.use(express.json());
 
-/*
-  Routes
-*/
-app.get("/", (_, res) => res.send("BuildConnect backend running"));
-app.get("/health", (_, res) => res.json({ ok: true }));
+/* -------------------- health -------------------- */
+app.get("/", (req, res) => {
+  res.send("BuildConnect backend is running");
+});
 
+app.get("/health", (req, res) => {
+  res.json({ ok: true });
+});
+
+/* -------------------- API ROUTES -------------------- */
+/**
+ * THIS IS THE CRITICAL LINE
+ * Everything in routes/messages.js is mounted under /messages
+ */
 app.use("/messages", messagesRouter);
 
-/*
-  Socket.IO
-*/
+/* -------------------- sockets -------------------- */
 const io = new Server(server, {
   cors: { origin: "*" },
 });
@@ -34,12 +41,12 @@ io.on("connection", (socket) => {
     connectedUsers.set(username, socket.id);
   });
 
-  socket.on("directMessage", (msg) => {
-    const toSocket = connectedUsers.get(msg.to);
-    const fromSocket = connectedUsers.get(msg.from);
+  socket.on("directMessage", (payload) => {
+    const toSocket = connectedUsers.get(payload.to);
+    const fromSocket = connectedUsers.get(payload.from);
 
-    if (toSocket) io.to(toSocket).emit("directMessage", msg);
-    if (fromSocket) io.to(fromSocket).emit("directMessage", msg);
+    if (toSocket) io.to(toSocket).emit("directMessage", payload);
+    if (fromSocket) io.to(fromSocket).emit("directMessage", payload);
   });
 
   socket.on("disconnect", () => {
@@ -52,9 +59,7 @@ io.on("connection", (socket) => {
   });
 });
 
-/*
-  Start
-*/
+/* -------------------- start -------------------- */
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
