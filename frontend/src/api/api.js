@@ -1,27 +1,11 @@
 import axios from "axios";
 
-/**
- * Central Axios instance for BuildConnect
- * Backend: Render
- * Base URL locked and verified
- */
 const api = axios.create({
- baseURL: import.meta.env.VITE_API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  timeout: 15000,
+  baseURL:
+    import.meta.env.MODE === "development"
+      ? "http://localhost:4000/api"
+      : "https://buildconnect-app.onrender.com/api",
+  withCredentials: false,
 });
-
-/**
- * Optional response interceptor (safe + clean)
- */
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error("[API ERROR]", error?.response || error);
-    return Promise.reject(error);
-  }
-);
 
 export default api;
