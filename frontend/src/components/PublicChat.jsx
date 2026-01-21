@@ -27,82 +27,59 @@ export default function PublicChat() {
   const [showEmojis, setShowEmojis] = useState(false);
   const [error, setError] = useState("");
 
-  const [hoveredId, setHoveredId] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [editText, setEditText] = useState("");
-
   const bottomRef = useRef(null);
 
-  /* =========================
-     LOAD PERSISTED MESSAGES
-  ========================= */
+  /* Load last 100 messages */
   useEffect(() => {
     api.get("/public").then(res => {
       if (Array.isArray(res.data)) setMessages(res.data);
     });
   }, []);
 
-  /* =========================
-     SOCKET UPDATES
-  ========================= */
+  /* Socket live updates */
   useEffect(() => {
     if (!socket) return;
 
-    const onMessage = (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    };
-
-    const onEdit = ({ id, text }) => {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === id ? { ...m, text, edited: true } : m
-        )
-      );
+    const onMessage = msg => {
+      setMessages(prev => [...prev, msg]);
     };
 
     socket.on("publicMessage", onMessage);
-    socket.on("publicEdit", onEdit);
-
-    return () => {
-      socket.off("publicMessage", onMessage);
-      socket.off("publicEdit", onEdit);
-    };
+    return () => socket.off("publicMessage", onMessage);
   }, [socket]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* =========================
-     FILE SELECTION
-  ========================= */
-  const onFileSelect = (f) => {
+  /* File selection */
+  const handleFileSelect = (f) => {
     setError("");
-
     if (!f) return;
 
     if (f.type.startsWith("video/")) {
-      setError("Videos are not supported yet. Coming soon.");
+      setError("Video upload coming soon. Please use images or files for now.");
       return;
     }
 
     setFile(f);
   };
 
-  /* =========================
-     SEND MESSAGE
-  ========================= */
+  /* Send message */
   const sendMessage = () => {
     if (!socket) return;
     if (!message.trim() && !file) return;
 
-    const username = user?.username || "Anonymous";
-
     const payload = {
       id: crypto.randomUUID(),
-      user: username,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      user: user?.username || "Anonymous",
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        user?.username || "Anonymous"
+      )}`,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
       text: message || null,
     };
 
@@ -128,21 +105,20 @@ export default function PublicChat() {
     setShowEmojis(false);
   };
 
-  /* =========================
-     RENDER
-  ========================= */
   return (
     <div className="chat-container">
       <div className="messages">
-        {messages.map((m) => (
+        {messages.map(m => (
           <div key={m.id} className="message">
             <div className="message-header">
-              <Link to={`/profile/${m.user}`} className="username">{m.user}</Link>
+              <Link to={`/profile/${m.user}`} className="username">
+                {m.user}
+              </Link>
             </div>
 
             {m.text && <div className="message-text">{m.text}</div>}
 
-            {m.file && (
+            {m.file && m.file.type.startsWith("image/") && (
               <img src={m.file.data} alt="" className="chat-image" />
             )}
 
@@ -152,9 +128,18 @@ export default function PublicChat() {
         <div ref={bottomRef} />
       </div>
 
+      {/* Attachment preview (THIS IS THE KEY FIX) */}
       {file && (
         <div className="file-preview">
-          <span>📎 {file.name}</span>
+          {file.type.startsWith("image/") ? (
+            <img
+              src={URL.createObjectURL(file)}
+              alt="preview"
+              className="preview-image"
+            />
+          ) : (
+            <span>📎 {file.name}</span>
+          )}
           <button onClick={() => setFile(null)}>✖</button>
         </div>
       )}
@@ -163,7 +148,7 @@ export default function PublicChat() {
 
       {showEmojis && (
         <div className="emoji-panel">
-          {EMOJIS.map((e) => (
+          {EMOJIS.map(e => (
             <span key={e} onClick={() => setMessage(m => m + e)}>{e}</span>
           ))}
         </div>
@@ -177,7 +162,7 @@ export default function PublicChat() {
           <input
             type="file"
             hidden
-            onChange={(e) => onFileSelect(e.target.files[0])}
+            onChange={(e) => handleFileSelect(e.target.files[0])}
           />
         </label>
 
