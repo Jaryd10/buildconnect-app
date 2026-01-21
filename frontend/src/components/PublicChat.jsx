@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useSocket } from "../context/SocketContext";
 import { useUser } from "../context/UserContext";
-import "../styles/chat.css";
 import { Link } from "react-router-dom";
 import api from "../api/api";
+import "../styles/chat.css";
 
 const EMOJIS = [
   "😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊",
@@ -33,15 +33,14 @@ export default function PublicChat() {
   const bottomRef = useRef(null);
 
   /* =====================================================
-     1️⃣ LOAD PERSISTED MESSAGES (DB)
-     Runs ONCE on page load
+     LOAD LAST 100 PERSISTED MESSAGES (ONCE)
   ===================================================== */
   useEffect(() => {
-    let active = true;
+    let alive = true;
 
     api.get("/public")
       .then((res) => {
-        if (active && Array.isArray(res.data)) {
+        if (alive && Array.isArray(res.data)) {
           setMessages(res.data);
         }
       })
@@ -50,12 +49,12 @@ export default function PublicChat() {
       });
 
     return () => {
-      active = false;
+      alive = false;
     };
   }, []);
 
   /* =====================================================
-     2️⃣ SOCKET LIVE UPDATES (append only)
+     SOCKET LIVE UPDATES (APPEND ONLY)
   ===================================================== */
   useEffect(() => {
     if (!socket) return;
@@ -89,7 +88,7 @@ export default function PublicChat() {
   }, [messages]);
 
   /* =====================================================
-     SEND MESSAGE (text + file)
+     SEND MESSAGE
   ===================================================== */
   const sendMessage = () => {
     if (!socket) return;
@@ -107,6 +106,7 @@ export default function PublicChat() {
         hour: "2-digit",
         minute: "2-digit",
       }),
+      text: message || null,
     };
 
     if (file) {
@@ -114,7 +114,6 @@ export default function PublicChat() {
       reader.onload = () => {
         socket.emit("publicMessage", {
           ...basePayload,
-          text: message || null,
           file: {
             name: file.name,
             type: file.type,
@@ -124,10 +123,7 @@ export default function PublicChat() {
       };
       reader.readAsDataURL(file);
     } else {
-      socket.emit("publicMessage", {
-        ...basePayload,
-        text: message.trim(),
-      });
+      socket.emit("publicMessage", basePayload);
     }
 
     setMessage("");
@@ -138,13 +134,13 @@ export default function PublicChat() {
   /* =====================================================
      EDIT HANDLERS
   ===================================================== */
-  const startEdit = (id, currentText) => {
+  const startEdit = (id, text) => {
     setEditingId(id);
-    setEditText(currentText || "");
+    setEditText(text || "");
   };
 
   const saveEdit = (id) => {
-    if (!socket || !editText.trim()) return;
+    if (!editText.trim()) return;
     socket.emit("publicEdit", { id, text: editText });
     setEditingId(null);
     setEditText("");
@@ -207,26 +203,25 @@ export default function PublicChat() {
             )}
 
             {m.file && (
-  <>
-    {m.file.type.startsWith("image/") && (
-      <img src={m.file.data} alt="" className="chat-image" />
-    )}
+              <>
+                {m.file.type.startsWith("image/") && (
+                  <img src={m.file.data} className="chat-image" />
+                )}
 
-    {m.file.type.startsWith("video/") && (
-      <video controls className="chat-video">
-        <source src={m.file.data} type={m.file.type} />
-        Your browser does not support the video tag.
-      </video>
-    )}
+                {m.file.type.startsWith("video/") && (
+                  <video controls className="chat-video">
+                    <source src={m.file.data} type={m.file.type} />
+                  </video>
+                )}
 
-    {!m.file.type.startsWith("image/") &&
-      !m.file.type.startsWith("video/") && (
-        <a href={m.file.data} download={m.file.name}>
-          📎 {m.file.name}
-        </a>
-      )}
-  </>
-)}
+                {!m.file.type.startsWith("image/") &&
+                  !m.file.type.startsWith("video/") && (
+                    <a href={m.file.data} download={m.file.name}>
+                      📎 {m.file.name}
+                    </a>
+                  )}
+              </>
+            )}
 
             <div className="time">{m.time}</div>
           </div>
@@ -243,22 +238,17 @@ export default function PublicChat() {
           ))}
         </div>
       )}
-      
-      {file && (
-  <div className="file-preview">
-    {file.type.startsWith("image/") ? (
-      <img
-        src={URL.createObjectURL(file)}
-        alt="preview"
-        className="preview-image"
-      />
-    ) : (
-      <span className="preview-file">📎 {file.name}</span>
-    )}
-    <button onClick={() => setFile(null)}>✖</button>
-  </div>
-)}
 
+      {file && (
+        <div className="file-preview">
+          {file.type.startsWith("image/") ? (
+            <img src={URL.createObjectURL(file)} className="preview-image" />
+          ) : (
+            <span>📎 {file.name}</span>
+          )}
+          <button onClick={() => setFile(null)}>✖</button>
+        </div>
+      )}
 
       <div className="chat-input-bar">
         <button onClick={() => setShowEmojis(!showEmojis)}>😊</button>
