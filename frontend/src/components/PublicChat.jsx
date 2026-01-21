@@ -29,18 +29,28 @@ export default function PublicChat() {
 
   const bottomRef = useRef(null);
 
-  /* Load last 100 messages */
+  /* =========================
+     LOAD LAST 100 MESSAGES
+  ========================= */
   useEffect(() => {
-    api.get("/public").then(res => {
-      if (Array.isArray(res.data)) setMessages(res.data);
-    });
+    api.get("/public")
+      .then(res => {
+        if (Array.isArray(res.data)) {
+          setMessages(res.data);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load public history", err);
+      });
   }, []);
 
-  /* Socket live updates */
+  /* =========================
+     SOCKET LIVE UPDATES
+  ========================= */
   useEffect(() => {
     if (!socket) return;
 
-    const onMessage = msg => {
+    const onMessage = (msg) => {
       setMessages(prev => [...prev, msg]);
     };
 
@@ -52,30 +62,36 @@ export default function PublicChat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* File selection */
+  /* =========================
+     FILE SELECT
+  ========================= */
   const handleFileSelect = (f) => {
     setError("");
     if (!f) return;
 
     if (f.type.startsWith("video/")) {
-      setError("Video upload coming soon. Please use images or files for now.");
+      setError("Video uploads will be enabled next. Images & files work now.");
       return;
     }
 
     setFile(f);
   };
 
-  /* Send message */
+  /* =========================
+     SEND MESSAGE
+  ========================= */
   const sendMessage = () => {
     if (!socket) return;
     if (!message.trim() && !file) return;
 
+    const username = user?.username || "Anonymous";
+
     const payload = {
       id: crypto.randomUUID(),
-      user: user?.username || "Anonymous",
+      user: username,
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        user?.username || "Anonymous"
-      )}`,
+        username
+      )}&background=0D8ABC&color=fff`,
       time: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -105,12 +121,19 @@ export default function PublicChat() {
     setShowEmojis(false);
   };
 
+  /* =========================
+     RENDER
+  ========================= */
   return (
     <div className="chat-container">
       <div className="messages">
         {messages.map(m => (
           <div key={m.id} className="message">
             <div className="message-header">
+              <Link to={`/profile/${m.user}`}>
+                <img src={m.avatar} alt="avatar" className="avatar" />
+              </Link>
+
               <Link to={`/profile/${m.user}`} className="username">
                 {m.user}
               </Link>
@@ -122,13 +145,19 @@ export default function PublicChat() {
               <img src={m.file.data} alt="" className="chat-image" />
             )}
 
+            {m.file && !m.file.type.startsWith("image/") && (
+              <a href={m.file.data} download={m.file.name}>
+                📎 {m.file.name}
+              </a>
+            )}
+
             <div className="time">{m.time}</div>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
-      {/* Attachment preview (THIS IS THE KEY FIX) */}
+      {/* INLINE ATTACHMENT PREVIEW */}
       {file && (
         <div className="file-preview">
           {file.type.startsWith("image/") ? (
