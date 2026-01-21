@@ -33,29 +33,29 @@ export default function PublicChat() {
   const bottomRef = useRef(null);
 
   /* =====================================================
-     🔑 STEP 1: LOAD PERSISTED PUBLIC MESSAGES (DB)
-     THIS IS WHAT WAS MISSING
+     1️⃣ LOAD PERSISTED MESSAGES (DB)
+     Runs ONCE on page load
   ===================================================== */
   useEffect(() => {
-    let mounted = true;
+    let active = true;
 
     api.get("/public")
       .then((res) => {
-        if (mounted) {
-          setMessages(res.data || []);
+        if (active && Array.isArray(res.data)) {
+          setMessages(res.data);
         }
       })
       .catch((err) => {
-        console.error("Failed to load public messages:", err);
+        console.error("Failed to load public messages", err);
       });
 
     return () => {
-      mounted = false;
+      active = false;
     };
   }, []);
 
   /* =====================================================
-     STEP 2: SOCKET LISTENERS (LIVE UPDATES)
+     2️⃣ SOCKET LIVE UPDATES (append only)
   ===================================================== */
   useEffect(() => {
     if (!socket) return;
@@ -81,12 +81,15 @@ export default function PublicChat() {
     };
   }, [socket]);
 
+  /* =====================================================
+     AUTO SCROLL
+  ===================================================== */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   /* =====================================================
-     SEND MESSAGE
+     SEND MESSAGE (text + file)
   ===================================================== */
   const sendMessage = () => {
     if (!socket) return;
@@ -94,7 +97,7 @@ export default function PublicChat() {
 
     const username = user?.username || "Anonymous";
 
-    const payload = {
+    const basePayload = {
       id: crypto.randomUUID(),
       user: username,
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -104,10 +107,28 @@ export default function PublicChat() {
         hour: "2-digit",
         minute: "2-digit",
       }),
-      text: message.trim() || null,
     };
 
-    socket.emit("publicMessage", payload);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        socket.emit("publicMessage", {
+          ...basePayload,
+          text: message || null,
+          file: {
+            name: file.name,
+            type: file.type,
+            data: reader.result,
+          },
+        });
+      };
+      reader.readAsDataURL(file);
+    } else {
+      socket.emit("publicMessage", {
+        ...basePayload,
+        text: message.trim(),
+      });
+    }
 
     setMessage("");
     setFile(null);
@@ -185,14 +206,42 @@ export default function PublicChat() {
               )
             )}
 
+            {m.file &&
+              (m.file.type.startsWith("image/") ? (
+                <img src={m.file.data} alt="" className="chat-image" />
+              ) : (
+                <a href={m.file.data} download={m.file.name}>
+                  📎 {m.file.name}
+                </a>
+              ))}
+
             <div className="time">{m.time}</div>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
+      {showEmojis && (
+        <div className="emoji-panel">
+          {EMOJIS.map((e) => (
+            <span key={e} onClick={() => setMessage((m) => m + e)}>
+              {e}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="chat-input-bar">
         <button onClick={() => setShowEmojis(!showEmojis)}>😊</button>
+
+        <label className="file-btn">
+          📎
+          <input
+            type="file"
+            hidden
+            onChange={(e) => setFile(e.target.files[0])}
+          />
+        </label>
 
         <input
           value={message}
