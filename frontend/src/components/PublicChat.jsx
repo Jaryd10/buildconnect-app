@@ -206,14 +206,27 @@ export default function PublicChat() {
               )
             )}
 
-            {m.file &&
-              (m.file.type.startsWith("image/") ? (
-                <img src={m.file.data} alt="" className="chat-image" />
-              ) : (
-                <a href={m.file.data} download={m.file.name}>
-                  📎 {m.file.name}
-                </a>
-              ))}
+            {m.file && (
+  <>
+    {m.file.type.startsWith("image/") && (
+      <img src={m.file.data} alt="" className="chat-image" />
+    )}
+
+    {m.file.type.startsWith("video/") && (
+      <video controls className="chat-video">
+        <source src={m.file.data} type={m.file.type} />
+        Your browser does not support the video tag.
+      </video>
+    )}
+
+    {!m.file.type.startsWith("image/") &&
+      !m.file.type.startsWith("video/") && (
+        <a href={m.file.data} download={m.file.name}>
+          📎 {m.file.name}
+        </a>
+      )}
+  </>
+)}
 
             <div className="time">{m.time}</div>
           </div>
@@ -230,6 +243,22 @@ export default function PublicChat() {
           ))}
         </div>
       )}
+      
+      {file && (
+  <div className="file-preview">
+    {file.type.startsWith("image/") ? (
+      <img
+        src={URL.createObjectURL(file)}
+        alt="preview"
+        className="preview-image"
+      />
+    ) : (
+      <span className="preview-file">📎 {file.name}</span>
+    )}
+    <button onClick={() => setFile(null)}>✖</button>
+  </div>
+)}
+
 
       <div className="chat-input-bar">
         <button onClick={() => setShowEmojis(!showEmojis)}>😊</button>
