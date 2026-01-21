@@ -54,6 +54,27 @@ db.prepare(`
 `).run();
 
 /* =========================
+   PUBLIC CHAT (HTTP)
+========================= */
+app.get("/api/public", (req, res) => {
+  const messages = db
+    .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
+    .all()
+    .map(row => ({
+      id: row.id,
+      user: row.username,
+      text: row.text,
+      file: row.file ? JSON.parse(row.file) : null,
+      time: new Date(row.created_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    }));
+
+  res.json(messages);
+});
+
+/* =========================
    MOCK AUTH ROUTES (SAFE)
 ========================= */
 app.post("/api/auth/register", (req, res) => {
