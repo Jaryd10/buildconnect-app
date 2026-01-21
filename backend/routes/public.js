@@ -3,6 +3,37 @@ const router = express.Router();
 const db = require("../db");
 
 /* =========================
+   GET MESSAGE HISTORY
+========================= */
+router.get("/", (req, res) => {
+  db.all(
+    `SELECT id, user, text, file, created_at
+     FROM messages
+     ORDER BY id ASC`,
+    [],
+    (err, rows) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Fetch failed" });
+      }
+
+      const messages = rows.map((m) => ({
+        id: m.id,
+        user: m.user,
+        text: m.text,
+        file: m.file ? JSON.parse(m.file) : null,
+        time: new Date(m.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      }));
+
+      res.json(messages);
+    }
+  );
+});
+
+/* =========================
    SAVE MESSAGE
 ========================= */
 router.post("/", (req, res) => {
@@ -19,50 +50,6 @@ router.post("/", (req, res) => {
       }
 
       res.json({ dbId: this.lastID });
-    }
-  );
-});
-
-/* =========================
-   EDIT MESSAGE
-========================= */
-router.put("/:dbId", (req, res) => {
-  const { text } = req.body;
-  const { dbId } = req.params;
-
-  db.run(
-    `UPDATE messages SET text = ? WHERE id = ?`,
-    [text, dbId],
-    function (err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Edit failed" });
-      }
-      res.sendStatus(200);
-    }
-  );
-});
-
-/* =========================
-   DELETE MESSAGE
-========================= */
-router.delete("/messages/:dbId", (req, res) => {
-  const { dbId } = req.params;
-
-  db.run(
-    `DELETE FROM messages WHERE id = ?`,
-    [dbId],
-    function (err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Delete failed" });
-      }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "Message not found" });
-      }
-
-      res.sendStatus(200);
     }
   );
 });
