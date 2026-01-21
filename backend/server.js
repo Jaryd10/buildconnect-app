@@ -58,8 +58,14 @@ db.prepare(`
 ========================= */
 app.get("/api/public", (req, res) => {
   const messages = db
-    .prepare("SELECT * FROM public_messages ORDER BY created_at ASC")
+    .prepare(`
+      SELECT *
+      FROM public_messages
+      ORDER BY created_at DESC
+      LIMIT 100
+    `)
     .all()
+    .reverse() // oldest → newest for UI
     .map(row => ({
       id: row.id,
       user: row.username,
@@ -73,6 +79,7 @@ app.get("/api/public", (req, res) => {
 
   res.json(messages);
 });
+
 
 /* =========================
    MOCK AUTH ROUTES (SAFE)

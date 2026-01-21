@@ -3,53 +3,38 @@ const router = express.Router();
 const db = require("../db");
 
 /* =========================
-   GET MESSAGE HISTORY
+   GET LAST 100 PUBLIC MESSAGES
 ========================= */
 router.get("/", (req, res) => {
   db.all(
-    `SELECT id, user, text, file, created_at
-     FROM messages
-     ORDER BY id ASC`,
+    `
+    SELECT id, user, text, file, created_at
+    FROM messages
+    ORDER BY id DESC
+    LIMIT 100
+    `,
     [],
     (err, rows) => {
       if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Fetch failed" });
+        console.error("Public history fetch failed:", err);
+        return res.status(500).json({ error: "Failed to load messages" });
       }
 
-      const messages = rows.map((m) => ({
-        id: m.id,
-        user: m.user,
-        text: m.text,
-        file: m.file ? JSON.parse(m.file) : null,
-        time: new Date(m.created_at).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      }));
+      // Oldest → newest for UI
+      const messages = rows
+        .reverse()
+        .map((m) => ({
+          id: m.id,
+          user: m.user,
+          text: m.text,
+          file: m.file ? JSON.parse(m.file) : null,
+          time: new Date(m.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        }));
 
       res.json(messages);
-    }
-  );
-});
-
-/* =========================
-   SAVE MESSAGE
-========================= */
-router.post("/", (req, res) => {
-  const { user, text, file } = req.body;
-
-  db.run(
-    `INSERT INTO messages (user, text, file)
-     VALUES (?, ?, ?)`,
-    [user, text || null, file ? JSON.stringify(file) : null],
-    function (err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Insert failed" });
-      }
-
-      res.json({ dbId: this.lastID });
     }
   );
 });
