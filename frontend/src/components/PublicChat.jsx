@@ -3,6 +3,7 @@ import { useSocket } from "../context/SocketContext";
 import { useUser } from "../context/UserContext";
 import "../styles/chat.css";
 import { Link } from "react-router-dom";
+import api from "../api/api";
 
 const EMOJIS = [
   "😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊",
@@ -31,15 +32,33 @@ export default function PublicChat() {
 
   const bottomRef = useRef(null);
 
-  /* =========================
-     Socket listeners
-  ========================= */
+  /* =====================================================
+     🔑 STEP 1: LOAD PERSISTED PUBLIC MESSAGES (DB)
+     THIS IS WHAT WAS MISSING
+  ===================================================== */
+  useEffect(() => {
+    let mounted = true;
+
+    api.get("/public")
+      .then((res) => {
+        if (mounted) {
+          setMessages(res.data || []);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load public messages:", err);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* =====================================================
+     STEP 2: SOCKET LISTENERS (LIVE UPDATES)
+  ===================================================== */
   useEffect(() => {
     if (!socket) return;
-
-    const onHistory = (history) => {
-      setMessages(history);
-    };
 
     const onMessage = (msg) => {
       setMessages((prev) => [...prev, msg]);
@@ -53,12 +72,10 @@ export default function PublicChat() {
       );
     };
 
-    socket.on("publicHistory", onHistory);
     socket.on("publicMessage", onMessage);
     socket.on("publicEdit", onEdit);
 
     return () => {
-      socket.off("publicHistory", onHistory);
       socket.off("publicMessage", onMessage);
       socket.off("publicEdit", onEdit);
     };
@@ -68,9 +85,9 @@ export default function PublicChat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* =========================
-     Message send
-  ========================= */
+  /* =====================================================
+     SEND MESSAGE
+  ===================================================== */
   const sendMessage = () => {
     if (!socket) return;
     if (!message.trim() && !file) return;
@@ -87,35 +104,19 @@ export default function PublicChat() {
         hour: "2-digit",
         minute: "2-digit",
       }),
+      text: message.trim() || null,
     };
 
-    if (message.trim()) payload.text = message;
-
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        socket.emit("publicMessage", {
-          ...payload,
-          file: {
-            name: file.name,
-            type: file.type,
-            data: reader.result,
-          },
-        });
-      };
-      reader.readAsDataURL(file);
-    } else {
-      socket.emit("publicMessage", payload);
-    }
+    socket.emit("publicMessage", payload);
 
     setMessage("");
     setFile(null);
     setShowEmojis(false);
   };
 
-  /* =========================
-     Edit handlers
-  ========================= */
+  /* =====================================================
+     EDIT HANDLERS
+  ===================================================== */
   const startEdit = (id, currentText) => {
     setEditingId(id);
     setEditText(currentText || "");
@@ -123,7 +124,6 @@ export default function PublicChat() {
 
   const saveEdit = (id) => {
     if (!socket || !editText.trim()) return;
-
     socket.emit("publicEdit", { id, text: editText });
     setEditingId(null);
     setEditText("");
@@ -134,15 +134,15 @@ export default function PublicChat() {
     setEditText("");
   };
 
-  /* =========================
-     Render
-  ========================= */
+  /* =====================================================
+     RENDER
+  ===================================================== */
   return (
     <div className="chat-container">
       <div className="messages">
         {messages.map((m) => (
           <div
-            key={m.id || m.created_at}
+            key={m.id}
             className="message"
             onMouseEnter={() => setHoveredId(m.id)}
             onMouseLeave={() => setHoveredId(null)}
@@ -185,42 +185,14 @@ export default function PublicChat() {
               )
             )}
 
-            {m.file &&
-              (m.file.type.startsWith("image/") ? (
-                <img src={m.file.data} alt="" className="chat-image" />
-              ) : (
-                <a href={m.file.data} download={m.file.name}>
-                  📎 {m.file.name}
-                </a>
-              ))}
-
             <div className="time">{m.time}</div>
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
-      {showEmojis && (
-        <div className="emoji-panel">
-          {EMOJIS.map((e) => (
-            <span key={e} onClick={() => setMessage((m) => m + e)}>
-              {e}
-            </span>
-          ))}
-        </div>
-      )}
-
       <div className="chat-input-bar">
         <button onClick={() => setShowEmojis(!showEmojis)}>😊</button>
-
-        <label className="file-btn">
-          📎
-          <input
-            type="file"
-            hidden
-            onChange={(e) => setFile(e.target.files[0])}
-          />
-        </label>
 
         <input
           value={message}
