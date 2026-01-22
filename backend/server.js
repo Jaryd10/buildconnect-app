@@ -4,6 +4,7 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 const Database = require("better-sqlite3");
 const path = require("path");
+const uploadRoutes = require("./routes/upload");
 
 const app = express();
 const server = http.createServer(app);
@@ -13,6 +14,7 @@ const server = http.createServer(app);
 ========================= */
 app.use(cors());
 app.use(express.json());
+app.use("/api/upload", uploadRoutes);
 
 /* =========================
    BASIC HTTP ROUTES (LOCKED)
