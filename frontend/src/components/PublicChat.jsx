@@ -29,69 +29,47 @@ export default function PublicChat() {
 
   const bottomRef = useRef(null);
 
-  /* =========================
-     LOAD LAST 100 MESSAGES
-  ========================= */
+  /* Load history */
   useEffect(() => {
     api.get("/public")
-      .then(res => {
-        if (Array.isArray(res.data)) {
-          setMessages(res.data);
-        }
-      })
-      .catch(err => {
-        console.error("Failed to load public history", err);
-      });
+      .then(res => Array.isArray(res.data) && setMessages(res.data))
+      .catch(err => console.error(err));
   }, []);
 
-  /* =========================
-     SOCKET LIVE UPDATES
-  ========================= */
+  /* Live socket updates */
   useEffect(() => {
     if (!socket) return;
-
-    const onMessage = (msg) => {
-      setMessages(prev => [...prev, msg]);
-    };
-
-    socket.on("publicMessage", onMessage);
-    return () => socket.off("publicMessage", onMessage);
+    socket.on("publicMessage", msg =>
+      setMessages(prev => [...prev, msg])
+    );
+    return () => socket.off("publicMessage");
   }, [socket]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* =========================
-     FILE SELECT
-  ========================= */
   const handleFileSelect = (f) => {
     setError("");
     if (!f) return;
 
     if (f.type.startsWith("video/")) {
-      setError("Video uploads will be enabled next. Images & files work now.");
+      setError("Video uploads coming next.");
       return;
     }
-
     setFile(f);
   };
 
-  /* =========================
-     SEND MESSAGE
-  ========================= */
   const sendMessage = () => {
     if (!socket) return;
     if (!message.trim() && !file) return;
 
-    const username = user?.username || "Anonymous";
-
     const payload = {
       id: crypto.randomUUID(),
-      user: username,
+      user: user?.username || "Anonymous",
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        username
-      )}&background=0D8ABC&color=fff`,
+        user?.username || "Anonymous"
+      )}`,
       time: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -121,9 +99,6 @@ export default function PublicChat() {
     setShowEmojis(false);
   };
 
-  /* =========================
-     RENDER
-  ========================= */
   return (
     <div className="chat-container">
       <div className="messages">
@@ -131,9 +106,8 @@ export default function PublicChat() {
           <div key={m.id} className="message">
             <div className="message-header">
               <Link to={`/profile/${m.user}`}>
-                <img src={m.avatar} alt="avatar" className="avatar" />
+                <img src={m.avatar} alt="" className="avatar" />
               </Link>
-
               <Link to={`/profile/${m.user}`} className="username">
                 {m.user}
               </Link>
@@ -141,14 +115,8 @@ export default function PublicChat() {
 
             {m.text && <div className="message-text">{m.text}</div>}
 
-            {m.file && m.file.type.startsWith("image/") && (
-              <img src={m.file.data} alt="" className="chat-image" />
-            )}
-
-            {m.file && !m.file.type.startsWith("image/") && (
-              <a href={m.file.data} download={m.file.name}>
-                📎 {m.file.name}
-              </a>
+            {m.file?.type?.startsWith("image/") && (
+              <img src={m.file.data} className="chat-image" />
             )}
 
             <div className="time">{m.time}</div>
@@ -157,18 +125,14 @@ export default function PublicChat() {
         <div ref={bottomRef} />
       </div>
 
-      {/* INLINE ATTACHMENT PREVIEW */}
+      {/* ✅ SINGLE preview block (correct place) */}
       {file && (
         <div className="file-preview">
-          {file.type.startsWith("image/") ? (
-            <img
-              src={URL.createObjectURL(file)}
-              alt="preview"
-              className="preview-image"
-            />
-          ) : (
-            <span>📎 {file.name}</span>
-          )}
+          <img
+            src={URL.createObjectURL(file)}
+            alt="preview"
+            className="preview-image"
+          />
           <button onClick={() => setFile(null)}>✖</button>
         </div>
       )}
@@ -183,24 +147,6 @@ export default function PublicChat() {
         </div>
       )}
 
-      {file && (
-  <div className="file-preview">
-    {file.type.startsWith("image/") && (
-      <img
-        src={URL.createObjectURL(file)}
-        alt="preview"
-        className="preview-image"
-      />
-    )}
-
-    {!file.type.startsWith("image/") && (
-      <span>📎 {file.name}</span>
-    )}
-
-    <button onClick={() => setFile(null)}>✖</button>
-  </div>
-)}
- 
       <div className="chat-input-bar">
         <button onClick={() => setShowEmojis(!showEmojis)}>😊</button>
 
@@ -215,9 +161,9 @@ export default function PublicChat() {
 
         <input
           value={message}
-          placeholder="Type a message..."
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          placeholder="Type a message..."
         />
 
         <button onClick={sendMessage}>Send</button>
