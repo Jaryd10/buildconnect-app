@@ -186,3 +186,16 @@ body.light .messages {
   top: 0;
   z-index: 10;
 }
+
+.chat-video {
+  max-width: 260px;
+  border-radius: 8px;
+  margin-top: 6px;
+}
+
+.uploading {
+  padding: 6px;
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+}
