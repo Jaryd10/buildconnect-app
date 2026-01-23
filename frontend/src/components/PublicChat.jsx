@@ -183,6 +183,24 @@ export default function PublicChat() {
         </div>
       )}
 
+      {file && (
+  <div className="file-preview">
+    {file.type.startsWith("image/") && (
+      <img
+        src={URL.createObjectURL(file)}
+        alt="preview"
+        className="preview-image"
+      />
+    )}
+
+    {!file.type.startsWith("image/") && (
+      <span>📎 {file.name}</span>
+    )}
+
+    <button onClick={() => setFile(null)}>✖</button>
+  </div>
+)}
+ 
       <div className="chat-input-bar">
         <button onClick={() => setShowEmojis(!showEmojis)}>😊</button>
 
